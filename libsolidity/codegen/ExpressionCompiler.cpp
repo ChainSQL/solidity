@@ -1072,7 +1072,6 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
 			);
 			utils().toSizeAfterFreeMemoryPointer();
 			m_context << Instruction::EXECUTESQL;
-			auto s = m_context.assembly().assemblyString();
 			break;
 		}
 		default:
