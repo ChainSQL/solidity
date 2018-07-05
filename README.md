@@ -11,7 +11,23 @@ The changelog for this project can be found [here](https://github.com/ethereum/s
 Solidity is still under development. So please do not hesitate and open an [issue in GitHub](https://github.com/ethereum/solidity/issues) if you encounter anything strange.
 
 ## Building
+### Building executable solc on linux/window
+
 See the [Solidity documentation](https://solidity.readthedocs.io/en/latest/installing-solidity.html#building-from-source) for build instructions.
+
+### Building soljson.js on linux
+
+#### Prerequisites
+
+1. sudo apt-get install docker
+
+#### Execute buiding commands
+
+```bash
+> sudo ./scripts/build_emscripten.sh
+```
+
+
 
 ## How to Contribute
 Please see our [contribution guidelines](https://solidity.readthedocs.io/en/latest/contributing.html) in the Solidity documentation.
