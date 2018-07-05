@@ -46,7 +46,7 @@ if ! type wget &>/dev/null; then
     apt-get -y install wget
 fi
 
-WORKSPACE=/home/dbliu/work/solidity
+WORKSPACE=$1
 
 # Increase nodejs stack size
 if [ -e ~/.emscripten ]
