@@ -39,7 +39,7 @@ Our OS X builds require you to [install the Homebrew](http://brew.sh/) package
    | Software                                                     | Notes                                               |
    | ------------------------------------------------------------ | --------------------------------------------------- |
    | [Git for Windows](https://git-scm.com/download/win)          | Command-line tool for retrieving source from Github |
-   | [CMake](https://cmake.org/download/)                         | Cross-platform build file generator                 |
+   | [CMake](https://cmake.org/download/)                         | Cross-platform build file generator                 |
    | [Visual Studio 2017 Build Tools](https://www.visualstudio.com/downloads/#build-tools-for-visual-studio-2017) | C++ compiler                                        |
    | [Visual Studio 2017](https://www.visualstudio.com/vs/) (Optional) | C++ compiler and dev environment                    |
 
@@ -54,6 +54,53 @@ Our OS X builds require you to [install the Homebrew](http://brew.sh/) package
    - Windows Universal CRT SDK
    - Windows 8.1 SDK
    - C++/CLI support
+
+### External Dependencies
+
+​	We now have a “one button” script which installs all required external dependencies on macOS, Windows and on numerous Linux distros. This used to be a multi-step manual process, but is now a one-liner: 
+
+```
+> ./scripts/install_deps.sh
+```
+
+Or, on windows:
+
+```
+> scripts\install_deps.bat
+```
+
+
+
+#### Command-Line Build
+
+**Be sure to install External Dependencies (see above) before build.** 
+
+Solidity project uses CMake to configure the build. Building Solidity is quite similar on Linux, macOS and other Unices: 
+
+```
+> mkdir build
+> cd build
+> cmake ..
+> make -j2
+```
+
+And even for Windows: 
+
+```
+> mkdir build
+> cd build
+> cmake -G "Visual Studio 15 2017 Win64" ..
+```
+
+This latter set of instructions should result in the creation of **solidity.sln** in that build directory. Double-clicking on that file should result in Visual Studio firing up. We suggest building **RelWithDebugInfo** configuration, but all others work.
+
+Alternatively, you can build for Windows on the command-line, like so:
+
+```
+cmake --build . --config RelWithDebInfo
+```
+
+
 
 ### Building soljson.js on linux
 
@@ -73,3 +120,7 @@ Our OS X builds require you to [install the Homebrew](http://brew.sh/) package
 Please see our [contribution guidelines](https://solidity.readthedocs.io/en/latest/contributing.html) in the Solidity documentation.
 
 Any contributions are welcome!
+
+## Reference
+
+See the [Solidity documentation](https://solidity.readthedocs.io/en/latest/installing-solidity.html#building-from-source) for build instructions 
