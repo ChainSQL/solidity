@@ -13,7 +13,47 @@ Solidity is still under development. So please do not hesitate and open an [issu
 ## Building
 ### Building executable solc on linux/window
 
-See the [Solidity documentation](https://solidity.readthedocs.io/en/latest/installing-solidity.html#building-from-source) for build instructions.
+#### Clone the Repository
+
+```
+> git clone git@github.com:ChainSQL/solidity.git
+> cd solidity
+```
+
+#### Prerequisites 
+
+##### 1. macOS
+
+​	For macOS, ensure that you have the latest version of  [Xcode installed](https://developer.apple.com/xcode/download/) . This contains the [Clang C++ compiler](https://en.wikipedia.org/wiki/Clang), the [Xcode IDE](https://en.wikipedia.org/wiki/Xcode) and other Apple development tools which are required for building C++ applications on OS X. If you are installing Xcode for the first time, or have just installed a new version then you will need to agree to the license before you can do command-line builds: 
+
+```
+> sudo xcodebuild -license accept
+```
+
+Our OS X builds require you to [install the Homebrew](http://brew.sh/) package manager for installing external dependencies. Here’s how to [uninstall Homebrew](https://github.com/Homebrew/homebrew/blob/master/share/doc/homebrew/FAQ.md#how-do-i-uninstall-homebrew), if you ever want to start again from scratch. 
+
+2. ##### Windows
+
+   You will need to install the following dependencies for Windows builds of Solidity: 
+
+   | Software                                                     | Notes                                               |
+   | ------------------------------------------------------------ | --------------------------------------------------- |
+   | [Git for Windows](https://git-scm.com/download/win)          | Command-line tool for retrieving source from Github |
+   | [CMake](https://cmake.org/download/)                         | Cross-platform build file generator                 |
+   | [Visual Studio 2017 Build Tools](https://www.visualstudio.com/downloads/#build-tools-for-visual-studio-2017) | C++ compiler                                        |
+   | [Visual Studio 2017](https://www.visualstudio.com/vs/) (Optional) | C++ compiler and dev environment                    |
+
+   If you’ve already had one IDE and only need compiler and libraries, you could install Visual Studio 2017 Build Tools.
+
+   Visual Studio 2017 provides both IDE and necessary compiler and libraries. So if you have not got an IDE and prefer to develop solidity, Visual Studio 2017 may be an choice for you to get everything setup easily.
+
+   Here is the list of components that should be installed in Visual Studio 2017 Build Tools or Visual Studio 2017:
+
+   - Visual Studio C++ core features
+   - VC++ 2017 v141 toolset (x86,x64)
+   - Windows Universal CRT SDK
+   - Windows 8.1 SDK
+   - C++/CLI support
 
 ### Building soljson.js on linux
 
