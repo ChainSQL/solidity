@@ -2,7 +2,7 @@ pragma solidity ^0.4.11;
 
 contract abstractModuleHandler {
     function transfer(address from, address to, uint256 value, bool fee) external returns (bool success) {}
-    function balanceOf(address owner) public constant returns (bool success, uint256 value) {}
+    function balanceOf(address owner) public view returns (bool success, uint256 value) {}
 }
 
 contract module {
@@ -90,13 +90,13 @@ contract module {
             @newModuleAddress   New module handler address
         */
         require( moduleStatus != status.New && moduleStatus != status.Disconnected);
-        var (_success, _balance) = abstractModuleHandler(moduleHandlerAddress).balanceOf(address(this));
+        (bool _success, uint256 _balance) = abstractModuleHandler(moduleHandlerAddress).balanceOf(address(this));
         require( _success );
         if ( _balance > 0 ) {
             require( abstractModuleHandler(moduleHandlerAddress).transfer(address(this), newModuleAddress, _balance, false) );
         }
-        if ( this.balance > 0 ) {
-            require( newModuleAddress.send(this.balance) );
+        if ( address(this).balance > 0 ) {
+            require( newModuleAddress.send(address(this).balance) );
         }
         moduleStatus = status.Disconnected;
     }
@@ -123,15 +123,15 @@ contract module {
             
             @ret    This is the module handler address or not
         */
-        if ( moduleHandlerAddress == 0x00 ) { return true; }
+        if ( moduleHandlerAddress == address(0x00) ) { return true; }
         if ( moduleStatus != status.Connected ) { return false; }
         return addr == moduleHandlerAddress;
     }
-    function isActive() public constant returns (bool success, bool active) {
+    function isActive() public view returns (bool success, bool active) {
         /*
             Check self for ready for functions or not.
             
-            @success    Function call was successfull or not
+            @success    Function call was successful or not
             @active     Ready for functions or not
         */
         return (true, moduleStatus == status.Connected && block.number >= disabledUntil);

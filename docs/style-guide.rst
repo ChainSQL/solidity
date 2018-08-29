@@ -114,15 +114,15 @@ No::
 
 .. _maximum_line_length:
 
-Maximum Line Length 
+Maximum Line Length
 ===================
 
-Keeping lines under the `PEP 8 recommendation <https://www.python.org/dev/peps/pep-0008/#maximum-line-length>`_ to a maximum of 79 (or 99) 
+Keeping lines under the `PEP 8 recommendation <https://www.python.org/dev/peps/pep-0008/#maximum-line-length>`_ to a maximum of 79 (or 99)
 characters helps readers easily parse the code.
 
 Wrapped lines should conform to the following guidelines.
 
-1. The first argument should not be attached to the opening parenthesis. 
+1. The first argument should not be attached to the opening parenthesis.
 2. One, and only one, indent should be used.
 3. Each argument should fall on its own line.
 4. The terminating element, :code:`);`, should be placed on the final line by itself.
@@ -132,38 +132,38 @@ Function Calls
 Yes::
 
     thisFunctionCallIsReallyLong(
-        longArgument1, 
-        longArgument2, 
+        longArgument1,
+        longArgument2,
         longArgument3
     );
 
 No::
 
-    thisFunctionCallIsReallyLong(longArgument1, 
-                                  longArgument2, 
+    thisFunctionCallIsReallyLong(longArgument1,
+                                  longArgument2,
                                   longArgument3
     );
-                                  
-    thisFunctionCallIsReallyLong(longArgument1, 
-        longArgument2, 
+
+    thisFunctionCallIsReallyLong(longArgument1,
+        longArgument2,
         longArgument3
-    );                                  
-                                  
+    );
+
     thisFunctionCallIsReallyLong(
         longArgument1, longArgument2,
         longArgument3
-    );                                    
+    );
 
     thisFunctionCallIsReallyLong(
-    longArgument1, 
-    longArgument2, 
+    longArgument1,
+    longArgument2,
     longArgument3
     );
 
     thisFunctionCallIsReallyLong(
-        longArgument1, 
-        longArgument2, 
-        longArgument3);        
+        longArgument1,
+        longArgument2,
+        longArgument3);
 
 Assignment Statements
 
@@ -188,8 +188,8 @@ Event Definitions and Event Emitters
 Yes::
 
     event LongAndLotsOfArgs(
-        adress sender,
-        adress recipient,
+        address sender,
+        address recipient,
         uint256 publicKey,
         uint256 amount,
         bytes32[] options
@@ -205,8 +205,8 @@ Yes::
 
 No::
 
-    event LongAndLotsOfArgs(adress sender,
-                            adress recipient,
+    event LongAndLotsOfArgs(address sender,
+                            address recipient,
                             uint256 publicKey,
                             uint256 amount,
                             bytes32[] options);
@@ -215,7 +215,7 @@ No::
                       recipient,
                       publicKey,
                       amount,
-                      options); 
+                      options);
 
 Source File Encoding
 ====================
@@ -274,11 +274,11 @@ Within a grouping, place the ``view`` and ``pure`` functions last.
 Yes::
 
     contract A {
-        function A() public {
+        constructor() public {
             ...
         }
 
-        function() public {
+        function() external {
             ...
         }
 
@@ -308,17 +308,17 @@ No::
         // External functions
         // ...
 
+        function() external {
+            ...
+        }
+
         // Private functions
         // ...
 
         // Public functions
         // ...
 
-        function A() public {
-            ...
-        }
-
-        function() public {
+        constructor() public {
             ...
         }
 
@@ -374,13 +374,13 @@ Don't include a whitespace in the fallback function:
 
 Yes::
 
-    function() public {
+    function() external {
         ...
     }
 
 No::
 
-    function () public {
+    function () external {
         ...
     }
 
@@ -529,7 +529,7 @@ No::
     function increment(uint x) public pure returns (uint) {
         return x + 1;}
 
-You should explicitly label the visibility of all functions, including constructors.  
+You should explicitly label the visibility of all functions, including constructors.
 
 Yes::
 
@@ -540,7 +540,7 @@ Yes::
 No::
 
     function implicitlyPublic(uint val) {
-        doSomething(); 
+        doSomething();
     }
 
 The visibility modifier for a function should come before any custom
@@ -663,19 +663,19 @@ Yes::
         address a,
         address b,
         address c
-    ) 
-        public 
+    )
+        public
         returns (
-            address someAddressName, 
-            uint256 LongArgument, 
+            address someAddressName,
+            uint256 LongArgument,
             uint256 Argument
         )
-    {    
+    {
         doSomething()
-        
+
         return (
-            veryLongReturnArg1, 
-            veryLongReturnArg2, 
+            veryLongReturnArg1,
+            veryLongReturnArg2,
             veryLongReturnArg3
         );
     }
@@ -686,16 +686,16 @@ No::
         address a,
         address b,
         address c
-    ) 
-        public 
-        returns (address someAddressName, 
-                 uint256 LongArgument, 
+    )
+        public
+        returns (address someAddressName,
+                 uint256 LongArgument,
                  uint256 Argument)
-    {    
+    {
         doSomething()
-        
-        return (veryLongReturnArg1, 
-                veryLongReturnArg1, 
+
+        return (veryLongReturnArg1,
+                veryLongReturnArg1,
                 veryLongReturnArg1);
     }
 
@@ -706,7 +706,7 @@ manner as modifiers if the function declaration is long or hard to read.
 Yes::
 
     contract A is B, C, D {
-        function A(uint param1, uint param2, uint param3, uint param4, uint param5)
+        constructor(uint param1, uint param2, uint param3, uint param4, uint param5)
             B(param1)
             C(param2, param3)
             D(param4)
@@ -719,7 +719,7 @@ Yes::
 No::
 
     contract A is B, C, D {
-        function A(uint param1, uint param2, uint param3, uint param4, uint param5)
+        constructor(uint param1, uint param2, uint param3, uint param4, uint param5)
         B(param1)
         C(param2, param3)
         D(param4)
@@ -730,7 +730,7 @@ No::
     }
 
     contract A is B, C, D {
-        function A(uint param1, uint param2, uint param3, uint param4, uint param5)
+        constructor(uint param1, uint param2, uint param3, uint param4, uint param5)
             B(param1)
             C(param2, param3)
             D(param4)
@@ -830,7 +830,7 @@ The naming recommendations given here are intended to improve the readability,
 and thus they are not rules, but rather guidelines to try and help convey the
 most information through the names of things.
 
-Lastly, consistency within a codebase should always supercede any conventions
+Lastly, consistency within a codebase should always supersede any conventions
 outlined in this document.
 
 

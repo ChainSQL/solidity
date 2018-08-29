@@ -1,33 +1,81 @@
 ### 0.5.0 (unreleased)
 
+How to update your code:
+ * Change every ``.call()`` to a ``.call("")`` and every ``.call(signature, a, b, c)`` to use ``.call(abi.encodeWithSignature(signature, a, b, c))`` (the last one only works for value types).
+ * Change every ``keccak256(a, b, c)`` to ``keccak256(abi.encodePacked(a, b, c))``.
+ * Add ``public`` to every function and ``external`` to every fallback or interface function that does not specify its visibility already.
+ * Make your fallback functions ``external``.
+ * Explicitly state the storage location for local variables of struct and array types, e.g. change ``uint[] x = m_x`` to ``uint[] storage x = m_x``.
+ * Explicitly convert values of contract type to addresses before using an ``address`` member. Example: if ``c`` is a contract, change ``c.transfer(...)`` to ``address(c).transfer(...)``.
+
+
 Breaking Changes:
  * ABI Encoder: Properly pad data from calldata (``msg.data`` and external function parameters). Use ``abi.encodePacked`` for unpadded encoding.
  * Code Generator: Signed right shift uses proper arithmetic shift, i.e. rounding towards negative infinity. Warning: this may silently change the semantics of existing code!
+ * Code Generator: Revert at runtime if calldata is too short or points out of bounds. This is done inside the ``ABI decoder`` and therefore also applies to ``abi.decode()``.
+ * Code Generator: Use ``STATICCALL`` for ``pure`` and ``view`` functions. This was already the case in the experimental 0.5.0 mode.
  * Commandline interface: Remove obsolete ``--formal`` option.
  * Commandline interface: Rename the ``--julia`` option to ``--yul``.
  * Commandline interface: Require ``-`` if standard input is used as source.
  * General: ``continue`` in a ``do...while`` loop jumps to the condition (it used to jump to the loop body). Warning: this may silently change the semantics of existing code.
  * General: Disallow declaring empty structs.
+ * General: Disallow raw ``callcode`` (was already deprecated in 0.4.12). It is still possible to use it via inline assembly.
+ * General: Disallow ``var`` keyword.
  * General: Disallow ``sha3`` and ``suicide`` aliases.
+ * General: Disallow the ``throw`` statement. This was already the case in the experimental 0.5.0 mode.
+ * General: Disallow the ``years`` unit denomination (was already deprecated in 0.4.24)
  * General: Introduce ``emit`` as a keyword instead of parsing it as identifier.
- * General: New keywords: ``calldata``
+ * General: New keywords: ``calldata`` and ``constructor``
  * General: New reserved keywords: ``alias``, ``apply``, ``auto``, ``copyof``, ``define``, ``immutable``,
    ``implements``, ``macro``, ``mutable``, ``override``, ``partial``, ``promise``, ``reference``, ``sealed``,
    ``sizeof``, ``supports``, ``typedef`` and ``unchecked``.
  * General: Remove assembly instruction aliases ``sha3`` and ``suicide``
+ * General: C99-style scoping rules are enforced now. This was already the case in the experimental 0.5.0 mode.
+ * General: Disallow combining hex numbers with unit denominations (e.g. ``0x1e wei``). This was already the case in the experimental 0.5.0 mode.
+ * Optimizer: Remove the no-op ``PUSH1 0 NOT AND`` sequence.
  * Parser: Disallow trailing dots that are not followed by a number.
+ * Parser: Remove ``constant`` as function state mutability modifer.
+ * Type Checker: Disallow assignments between tuples with different numbers of components. This was already the case in the experimental 0.5.0 mode.
+ * Type Checker: Disallow values for constants that are not compile-time constants. This was already the case in the experimental 0.5.0 mode.
  * Type Checker: Disallow arithmetic operations for boolean variables.
+ * Type Checker: Disallow tight packing of literals. This was already the case in the experimental 0.5.0 mode.
  * Type Checker: Disallow conversions between ``bytesX`` and ``uintY`` of different size.
+ * Type Checker: Disallow empty tuple components. This was partly already the case in the experimental 0.5.0 mode.
+ * Type Checker: Disallow multi-variable declarations with mismatching number of values. This was already the case in the experimental 0.5.0 mode.
+ * Type Checker: Disallow specifying base constructor arguments multiple times in the same inheritance hierarchy. This was already the case in the experimental 0.5.0 mode.
+ * Type Checker: Disallow calling constructor with wrong argument count. This was already the case in the experimental 0.5.0 mode.
+ * Type Checker: Disallow uninitialized storage variables. This was already the case in the experimental 0.5.0 mode.
+ * Type Checker: Only accept a single ``bytes`` type for ``.call()`` (and family), ``keccak256()``, ``sha256()`` and ``ripemd160()``.
+ * Type Checker: Fallback function must be external. This was already the case in the experimental 0.5.0 mode.
+ * Type Checker: Interface functions must be declared external. This was already the case in the experimental 0.5.0 mode.
+ * Type Checker: Address members are not included in contract types anymore. An explicit conversion is now required before invoking an ``address`` member from a contract.
  * Remove obsolete ``std`` directory from the Solidity repository. This means accessing ``https://github.com/ethereum/soldity/blob/develop/std/*.sol`` (or ``https://github.com/ethereum/solidity/std/*.sol`` in Remix) will not be possible.
+ * References Resolver: Turn missing storage locations into an error. This was already the case in the experimental 0.5.0 mode.
+ * Syntax Checker: Disallow functions without implementation to use modifiers. This was already the case in the experimental 0.5.0 mode.
+ * Syntax Checker: Named return values in function types are an error.
+ * Syntax Checker: Strictly require visibility specifier for functions. This was already the case in the experimental 0.5.0 mode.
+ * Syntax Checker: Disallow unary ``+``. This was already the case in the experimental 0.5.0 mode.
+ * View Pure Checker: Strictly enfore state mutability. This was already the case in the experimental 0.5.0 mode.
 
 Language Features:
  * General: Allow appending ``calldata`` keyword to types, to explicitly specify data location for arguments of external functions.
  * General: Support ``pop()`` for storage arrays.
+ * General: Scoping rules now follow the C99-style.
 
 Compiler Features:
+ * C API (``libsolc``): Export the ``solidity_license``, ``solidity_version`` and ``solidity_compile`` methods.
  * Type Checker: Show named argument in case of error.
+ * Tests: Determine transaction status during IPC calls.
+ * Code Generator: Allocate and free local variables according to their scope.
 
 Bugfixes:
+ * Tests: Fix chain parameters to make ipc tests work with newer versions of cpp-ethereum.
+ * Code Generator: Fix allocation of byte arrays (zeroed out too much memory).
+ * Fix NatSpec json output for `@notice` and `@dev` tags on contract definitions.
+ * References Resolver: Enforce ``storage`` as data location for mappings.
+ * References Resolver: Report error instead of assertion fail when FunctionType has an undeclared type as parameter.
+ * Type Checker: Consider fixed size arrays when checking for recursive structs.
+ * Type System: Allow arbitrary exponents for literals with a mantissa of zero.
 
 ### 0.4.24 (2018-05-16)
 
@@ -679,7 +727,7 @@ Bugfixes:
  * Conditional: `x ? y : z`
  * Bugfix: Fixed several bugs where the optimizer generated invalid code.
  * Bugfix: Enums and structs were not accessible to other contracts.
- * Bugfix: Fixed segfault connected to function paramater types, appeared during gas estimation.
+ * Bugfix: Fixed segfault connected to function parameter types, appeared during gas estimation.
  * Bugfix: Type checker crash for wrong number of base constructor parameters.
  * Bugfix: Allow function overloads with different array types.
  * Bugfix: Allow assignments of type `(x) = 7`.

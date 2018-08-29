@@ -25,21 +25,6 @@ What is the transaction "payload"?
 
 This is just the bytecode "data" sent along with the request.
 
-Is there a decompiler available?
-================================
-
-There is no exact decompiler to Solidity, but
-`Porosity <https://github.com/comaeio/porosity>`_ is close.
-Because some information like variable names, comments, and
-source code formatting is lost in the compilation process,
-it is not possible to completely recover the original source code.
-
-Bytecode can be disassembled to opcodes, a service that is provided by
-several blockchain explorers.
-
-Contracts on the blockchain should have their original source
-code published if they are to be used by third parties.
-
 Create a contract that can be killed and return funds
 =====================================================
 
@@ -69,7 +54,7 @@ Can you return an array or a ``string`` from a solidity function call?
 Yes. See `array_receiver_and_returner.sol <https://github.com/fivedogit/solidity-baby-steps/blob/master/contracts/60_array_receiver_and_returner.sol>`_.
 
 What is problematic, though, is returning any variably-sized data (e.g. a
-variably-sized array like ``uint[]``) from a fuction **called from within Solidity**.
+variably-sized array like ``uint[]``) from a function **called from within Solidity**.
 This is a limitation of the EVM and will be solved with the next protocol update.
 
 Returning variably-sized data as part of an external transaction or call is fine.
@@ -85,7 +70,7 @@ Example::
     pragma solidity ^0.4.16;
 
     contract C {
-        function f() public pure returns (uint8[5]) {
+        function f() public pure returns (uint8[5] memory) {
             string[4] memory adaArr = ["This", "is", "an", "array"];
             return ([1, 2, 3, 4, 5]);
         }
@@ -136,14 +121,9 @@ See `struct_and_for_loop_tester.sol <https://github.com/fivedogit/solidity-baby-
 How do for loops work?
 ======================
 
-Very similar to JavaScript. There is one point to watch out for, though:
+Very similar to JavaScript. Such as the following example:
 
-If you use ``for (var i = 0; i < a.length; i ++) { a[i] = i; }``, then
-the type of ``i`` will be inferred only from ``0``, whose type is ``uint8``.
-This means that if ``a`` has more than ``255`` elements, your loop will
-not terminate because ``i`` can only hold values up to ``255``.
-
-Better use ``for (uint i = 0; i < a.length...``
+``for (uint i = 0; i < a.length; i ++) { a[i] = i; }``
 
 See `struct_and_for_loop_tester.sol <https://github.com/fivedogit/solidity-baby-steps/blob/master/contracts/65_struct_and_for_loop_tester.sol>`_.
 
@@ -265,7 +245,7 @@ The third one is the stack, which is used to hold small local variables.
 It is almost free to use, but can only hold a limited amount of values.
 
 For almost all types, you cannot specify where they should be stored, because
-they are copied everytime they are used.
+they are copied every time they are used.
 
 The types where the so-called storage location is important are structs
 and arrays. If you e.g. pass such variables in function calls, their
@@ -278,8 +258,10 @@ of variable it concerns:
 
 * state variables are always in storage
 * function arguments are in memory by default
-* local variables of struct, array or mapping type reference storage by default
+* local variables of mapping type reference storage by default
 * local variables of value type (i.e. neither array, nor struct nor mapping) are stored in the stack
+
+For local variables of struct or array type the storage location has to be stated explicitly.
 
 Example::
 
@@ -311,48 +293,12 @@ independent copy of the state variable is created in memory and
 is another issue). The modifications to this independent copy do not
 carry back to ``data1`` or ``data2``.
 
-A common mistake is to declare a local variable and assume that it will
-be created in memory, although it will be created in storage::
-
-    /// THIS CONTRACT CONTAINS AN ERROR
-
-    pragma solidity ^0.4.0;
-
-    contract C {
-        uint someVariable;
-        uint[] data;
-
-        function f() public {
-            uint[] x;
-            x.push(2);
-            data = x;
-        }
-    }
-
-The type of the local variable ``x`` is ``uint[] storage``, but since
-storage is not dynamically allocated, it has to be assigned from
-a state variable before it can be used. So no space in storage will be
-allocated for ``x``, but instead it functions only as an alias for
-a pre-existing variable in storage.
-
-What will happen is that the compiler interprets ``x`` as a storage
-pointer and will make it point to the storage slot ``0`` by default.
-This has the effect that ``someVariable`` (which resides at storage
-slot ``0``) is modified by ``x.push(2)``.
-
-The correct way to do this is the following::
-
-    pragma solidity ^0.4.0;
-
-    contract C {
-        uint someVariable;
-        uint[] data;
-
-        function f() public {
-            uint[] x = data;
-            x.push(2);
-        }
-    }
+.. warning::
+    Prior to version 0.5.0, a common mistake was to declare a local variable and assume that it will
+    be created in memory, although it will be created in storage. Using such a variable without initializing
+    could lead to unexpected behavior. Starting from 0.5.0, however, the storage location for local variables
+    has to be specified explicitly and local storage variables have to be initialized, which should prevent
+    these kinds of mistakes.
 
 ******************
 Advanced Questions
@@ -414,7 +360,7 @@ This is a very interesting question. Suppose that we have a contract field set u
        User user2 = user1;
     }
 
-In this case, the mapping of the struct being copied over into the userList is ignored as there is no "list of mapped keys".
+In this case, the mapping of the struct being copied over into ``user2`` is ignored as there is no "list of mapped keys".
 Therefore it is not possible to find out which values should be copied over.
 
 How do I initialize a contract with only a specific amount of wei?
@@ -426,10 +372,10 @@ In the case of a ``contract A`` calling a new instance of ``contract B``, parent
 You will need to make sure that you have both contracts aware of each other's presence and that ``contract B`` has a ``payable`` constructor.
 In this example::
 
-    pragma solidity ^0.4.0;
+    pragma solidity >0.4.24;
 
     contract B {
-        function B() public payable {}
+        constructor() public payable {}
     }
 
     contract A {
@@ -484,7 +430,7 @@ independent copies will be created::
             h(x);
         }
 
-        function g(uint[20] y) internal pure {
+        function g(uint[20] memory y) internal pure {
             y[2] = 3;
         }
 
@@ -494,10 +440,9 @@ independent copies will be created::
     }
 
 The call to ``g(x)`` will not have an effect on ``x`` because it needs
-to create an independent copy of the storage value in memory
-(the default storage location is memory). On the other hand,
-``h(x)`` successfully modifies ``x`` because only a reference
-and not a copy is passed.
+to create an independent copy of the storage value in memory.
+On the other hand, ``h(x)`` successfully modifies ``x`` because only
+a reference and not a copy is passed.
 
 Sometimes, when I try to change the length of an array with ex: ``arrayname.length = 7;`` I get a compiler error ``Value must be an lvalue``. Why?
 ==================================================================================================================================================

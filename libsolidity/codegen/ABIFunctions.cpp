@@ -17,7 +17,7 @@
 /**
  * @author Christian <chris@ethereum.org>
  * @date 2017
- * Routines that generate JULIA code related to ABI encoding, decoding and type conversions.
+ * Routines that generate Yul code related to ABI encoding, decoding and type conversions.
  */
 
 #include <libsolidity/codegen/ABIFunctions.h>
@@ -989,7 +989,7 @@ string ABIFunctions::abiEncodingFunctionStringLiteral(
 			)");
 			templ("functionName", functionName);
 
-			// TODO this can make use of CODECOPY for large strings once we have that in JULIA
+			// TODO this can make use of CODECOPY for large strings once we have that in Yul
 			size_t words = (value.size() + 31) / 32;
 			templ("overallSize", to_string(32 + words * 32));
 			templ("length", to_string(value.size()));
@@ -1188,7 +1188,8 @@ string ABIFunctions::abiDecodingFunctionCalldataArray(ArrayType const& _type)
 	solAssert(_type.dataStoredIn(DataLocation::CallData), "");
 	if (!_type.isDynamicallySized())
 		solAssert(_type.length() < u256("0xffffffffffffffff"), "");
-	solAssert(!_type.baseType()->isDynamicallyEncoded(), "");
+	if (_type.baseType()->isDynamicallyEncoded())
+		solUnimplemented("Calldata arrays with non-value base types are not yet supported by Solidity.");
 	solAssert(_type.baseType()->calldataEncodedSize() < u256("0xffffffffffffffff"), "");
 
 	string functionName =

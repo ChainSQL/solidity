@@ -1,11 +1,11 @@
-// This tests a crash that occured because we did not stop for fatal errors.
+// This tests a crash that occurred because we did not stop for fatal errors.
 contract C {
     struct S {
         ftring a;
     }
     S public s;
-    function s() s {
+    function s() public s {
     }
 }
 // ----
-// DeclarationError: (113-119): Identifier not found or not unique.
+// DeclarationError: (114-120): Identifier not found or not unique.

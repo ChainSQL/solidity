@@ -17,7 +17,7 @@
 /**
  * @author Christian <chris@ethereum.org>
  * @date 2017
- * Routines that generate JULIA code related to ABI encoding, decoding and type conversions.
+ * Routines that generate Yul code related to ABI encoding, decoding and type conversions.
  */
 
 #pragma once
@@ -203,7 +203,7 @@ private:
 	std::string arrayLengthFunction(ArrayType const& _type);
 	/// @returns the name of a function that computes the number of bytes required
 	/// to store an array in memory given its length (internally encoded, not ABI encoded).
-	/// The function reverts for too large lengthes.
+	/// The function reverts for too large lengths.
 	std::string arrayAllocationSizeFunction(ArrayType const& _type);
 	/// @returns the name of a function that converts a storage slot number
 	/// or a memory pointer to the slot number / memory pointer for the data position of an array

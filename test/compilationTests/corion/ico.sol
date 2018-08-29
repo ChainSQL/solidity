@@ -49,8 +49,8 @@ contract ico is safeMath {
     mapping (address => mapping(uint256 => interest_s)) public interestDB;
     uint256 public totalMint;
     uint256 public totalPremiumMint;
-    
-    function ico(address foundation, address priceSet, uint256 exchangeRate, uint256 startBlockNum, address[] genesisAddr, uint256[] genesisValue) {
+
+    constructor(address foundation, address priceSet, uint256 exchangeRate, uint256 startBlockNum, address[] memory genesisAddr, uint256[] memory genesisValue) public {
         /*
             Installation function.
             
@@ -81,7 +81,7 @@ contract ico is safeMath {
         }
     }
     
-    function ICObonus() public constant returns(uint256 bonus) {
+    function ICObonus() public view returns(uint256 bonus) {
         /*
             Query of current bonus
             
@@ -113,7 +113,7 @@ contract ico is safeMath {
         return true;
     }
     
-    function checkInterest(address addr) public constant returns(uint256 amount) {
+    function checkInterest(address addr) public view returns(uint256 amount) {
         /*
             Query of compound interest
             
@@ -162,7 +162,7 @@ contract ico is safeMath {
         interest_s memory _idb;
         address _addr = beneficiary;
         uint256 _to = (block.number - startBlock) / interestBlockDelay;
-        if ( _addr == 0x00 ) { _addr = msg.sender; }
+        if ( _addr == address(0x00) ) { _addr = msg.sender; }
         
         require( block.number > icoDelay );
         require( ! aborted );
@@ -231,7 +231,7 @@ contract ico is safeMath {
         require( ! aborted );
         require( token(tokenAddr).mint(foundationAddress, token(tokenAddr).totalSupply() * 96 / 100) );
         require( premium(premiumAddr).mint(foundationAddress, totalMint / 5000 - totalPremiumMint) );
-        require( foundationAddress.send(this.balance) );
+        require( foundationAddress.send(address(this).balance) );
         require( token(tokenAddr).closeIco() );
         require( premium(premiumAddr).closeIco() );
     }
@@ -257,7 +257,7 @@ contract ico is safeMath {
             @premiumContractAddr    Address of the corion premium token contract
         */
         require( msg.sender == owner );
-        require( tokenAddr == 0x00 && premiumAddr == 0x00 );
+        require( tokenAddr == address(0x00) && premiumAddr == address(0x00) );
         tokenAddr = tokenContractAddr;
         premiumAddr = premiumContractAddr;
     }
@@ -275,24 +275,24 @@ contract ico is safeMath {
         require( msg.sender.send(_val) );
     }
     
-    function () payable {
+    function () external payable {
         /*
-            Callback function. Simply calls the buy function as a beneficiary and there is no affilate address.
+            Callback function. Simply calls the buy function as a beneficiary and there is no affiliate address.
             If they call the contract without any function then this process will be taken place.
         */
         require( isICO() );
-        require( buy(msg.sender, 0x00) );
+        require( buy(msg.sender, address(0x00)) );
     }
-    
-    function buy(address beneficiaryAddress, address affilateAddress) payable returns (bool success) {
+
+    function buy(address beneficiaryAddress, address affilateAddress) public payable returns (bool success) {
         /*
             Buying a token
             
             If there is not at least 0.2 ether balance on the beneficiaryAddress then the amount of the ether which was intended for the purchase will be reduced by 0.2 and that will be sent to the address of the beneficiary.
             From the remaining amount calculate the reward with the help of the getIcoReward function.
-            Only that affilate address is valid which has some token on it’s account.
-            If there is a valid affilate address then calculate and credit the reward as well in the following way:
-            With more than 1e12 token contract credit 5% reward based on the calculation that how many tokens did they buy when he was added as an affilate.
+            Only that affiliate address is valid which has some token on it’s account.
+            If there is a valid affiliate address then calculate and credit the reward as well in the following way:
+            With more than 1e12 token contract credit 5% reward based on the calculation that how many tokens did they buy when he was added as an affiliate.
                 More than 1e11 token: 4%
                 More than 1e10 token: 3%
                 More than 1e9 token: 2% below 1%
@@ -300,16 +300,16 @@ contract ico is safeMath {
             @affilateAddress        The address of the person who offered who will get the referral reward. It can not be equal with the beneficiaryAddress.
         */
         require( isICO() );
-        if ( beneficiaryAddress == 0x00) { beneficiaryAddress = msg.sender; }
+        if ( beneficiaryAddress == address(0x00)) { beneficiaryAddress = msg.sender; }
         if ( beneficiaryAddress == affilateAddress ) {
-            affilateAddress = 0x00;
+            affilateAddress = address(0x00);
         }
         uint256 _value = msg.value;
         if ( beneficiaryAddress.balance < 0.2 ether ) {
             require( beneficiaryAddress.send(0.2 ether) );
             _value = safeSub(_value, 0.2 ether);
         }
-        var _reward = getIcoReward(_value);
+        uint256 _reward = getIcoReward(_value);
         require( _reward > 0 );
         require( token(tokenAddr).mint(beneficiaryAddress, _reward) );
         brought[beneficiaryAddress].eth = safeAdd(brought[beneficiaryAddress].eth, _value);
@@ -317,7 +317,7 @@ contract ico is safeMath {
         totalMint = safeAdd(totalMint, _reward);
         require( foundationAddress.send(_value * 10 / 100) );
         uint256 extra;
-        if ( affilateAddress != 0x00 && ( brought[affilateAddress].eth > 0 || interestDB[affilateAddress][0].amount > 0 ) ) {
+        if ( affilateAddress != address(0x00) && ( brought[affilateAddress].eth > 0 || interestDB[affilateAddress][0].amount > 0 ) ) {
             affiliate[affilateAddress].weight = safeAdd(affiliate[affilateAddress].weight, _reward);
             extra = affiliate[affilateAddress].weight;
             uint256 rate;
@@ -337,7 +337,7 @@ contract ico is safeMath {
             token(tokenAddr).mint(affilateAddress, extra);
         }
         checkPremium(beneficiaryAddress);
-        EICO(beneficiaryAddress, _reward, affilateAddress, extra);
+        emit EICO(beneficiaryAddress, _reward, affilateAddress, extra);
         return true;
     }
 
@@ -345,7 +345,7 @@ contract ico is safeMath {
         /*
             Crediting the premium token
         
-            @owner The corion token balance of this address will be set based on the calculation which shows that how many times can be the amount of the purchased tokens devided by 5000. So after each 5000 token we give 1 premium token.
+            @owner The corion token balance of this address will be set based on the calculation which shows that how many times can be the amount of the purchased tokens divided by 5000. So after each 5000 token we give 1 premium token.
         */
         uint256 _reward = (brought[owner].cor / 5e9) - brought[owner].corp;
         if ( _reward > 0 ) {
@@ -355,7 +355,7 @@ contract ico is safeMath {
         }
     }
     
-    function getIcoReward(uint256 value) public constant returns (uint256 reward) {
+    function getIcoReward(uint256 value) public view returns (uint256 reward) {
         /*
             Expected token volume at token purchase
             
@@ -368,9 +368,9 @@ contract ico is safeMath {
         if ( reward < 5e6) { return 0; }
     }
     
-    function isICO() public constant returns (bool success) {
+    function isICO() public view returns (bool success) {
         return startBlock <= block.number && block.number <= icoDelay && ( ! aborted ) && ( ! closed );
     }
     
-    event EICO(address indexed Address, uint256 indexed value, address Affilate, uint256 AffilateValue);
+    event EICO(address indexed Address, uint256 indexed value, address Affiliate, uint256 AffilateValue);
 }

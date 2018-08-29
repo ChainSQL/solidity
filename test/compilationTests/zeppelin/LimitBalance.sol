@@ -15,7 +15,7 @@ contract LimitBalance {
    * @dev Constructor that sets the passed value as a limit. 
    * @param _limit uint256 to represent the limit.
    */
-  function LimitBalance(uint256 _limit) {
+  constructor(uint256 _limit) public {
     limit = _limit;
   }
 
@@ -23,8 +23,8 @@ contract LimitBalance {
    * @dev Checks if limit was reached. Case true, it throws.
    */
   modifier limitedPayable() {
-    if (this.balance > limit) {
-      throw;
+    if (address(this).balance > limit) {
+      revert();
     }
     _;
 

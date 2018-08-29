@@ -7,10 +7,8 @@ Types
 *****
 
 Solidity is a statically typed language, which means that the type of each
-variable (state and local) needs to be specified (or at least known -
-see :ref:`type-deduction` below) at
-compile-time. Solidity provides several elementary types which can be combined
-to form complex types.
+variable (state and local) needs to be specified.
+Solidity provides several elementary types which can be combined to form complex types.
 
 In addition, types can interact with each other in expressions containing
 operators. For a quick reference of the various operators, see :ref:`order`.
@@ -143,27 +141,37 @@ Send is the low-level counterpart of ``transfer``. If the execution fails, the c
 * ``call``, ``callcode`` and ``delegatecall``
 
 Furthermore, to interface with contracts that do not adhere to the ABI,
-the function ``call`` is provided which takes an arbitrary number of arguments of any type. These arguments are padded to 32 bytes and concatenated. One exception is the case where the first argument is encoded to exactly four bytes. In this case, it is not padded to allow the use of function signatures here.
+or to get more direct control over the encoding,
+the function ``call`` is provided which takes a single byte array as input.
+The functions ``abi.encode``, ``abi.encodePacked``, ``abi.encodeWithSelector``
+and ``abi.encodeWithSignature`` can be used to encode structured data.
 
-::
+.. warning::
+    All these functions are low-level functions and should be used with care.
+    Specifically, any unknown contract might be malicious and if you call it, you
+    hand over control to that contract which could in turn call back into
+    your contract, so be prepared for changes to your state variables
+    when the call returns. The regular way to interact with other contracts
+    is to call a function on a contract object (``x.f()``).
 
-    address nameReg = 0x72ba7d8e73fe8eb666ea66babc8116a41bfb10e2;
-    nameReg.call("register", "MyName");
-    nameReg.call(bytes4(keccak256("fun(uint256)")), a);
+:: note::
+    Previous versions of Solidity allowed these functions to receive
+    arbitrary arguments and would also handle a first argument of type
+    ``bytes4`` differently. These edge cases were removed in version 0.5.0.
 
-``call`` returns a boolean indicating whether the invoked function terminated (``true``) or caused an EVM exception (``false``). It is not possible to access the actual data returned (for this we would need to know the encoding and size in advance).
+``call`` returns a boolean indicating whether the invoked function terminated (``true``) or caused an EVM exception (``false``). It is not possible to access the actual data returned with plain Solidity. However, using inline assembly it is possible to make a raw ``call`` and access the actual data returned with the ``returndatacopy`` instruction.
 
 It is possible to adjust the supplied gas with the ``.gas()`` modifier::
 
-    namReg.call.gas(1000000)("register", "MyName");
+    namReg.call.gas(1000000)(abi.encodeWithSignature("register(string)", "MyName"));
 
 Similarly, the supplied Ether value can be controlled too::
 
-    nameReg.call.value(1 ether)("register", "MyName");
+    nameReg.call.value(1 ether)(abi.encodeWithSignature("register(string)", "MyName"));
 
 Lastly, these modifiers can be combined. Their order does not matter::
 
-    nameReg.call.gas(1000000).value(1 ether)("register", "MyName");
+    nameReg.call.gas(1000000).value(1 ether)(abi.encodeWithSignature("register(string)", "MyName"));
 
 .. note::
     It is not yet possible to use the gas or value modifiers on overloaded functions.
@@ -183,13 +191,6 @@ The ``.gas()`` option is available on all three methods, while the ``.value()`` 
 
 .. note::
     The use of ``callcode`` is discouraged and will be removed in the future.
-
-.. warning::
-    All these functions are low-level functions and should be used with care.
-    Specifically, any unknown contract might be malicious and if you call it, you
-    hand over control to that contract which could in turn call back into
-    your contract, so be prepared for changes to your state variables
-    when the call returns.
 
 .. index:: byte array, bytes32
 
@@ -375,7 +376,7 @@ be passed via and returned from external function calls.
 
 Function types are notated as follows::
 
-    function (<parameter types>) {internal|external} [pure|constant|view|payable] [returns (<return types>)]
+    function (<parameter types>) {internal|external} [pure|view|payable] [returns (<return types>)]
 
 In contrast to the parameter types, the return types cannot be empty - if the
 function type should not return anything, the whole ``returns (<return types>)``
@@ -384,10 +385,6 @@ part has to be omitted.
 By default, function types are internal, so the ``internal`` keyword can be
 omitted. In contrast, contract functions themselves are public by default,
 only when used as the name of a type, the default is internal.
-
-There are two ways to access a function in the current contract: Either directly
-by its name, ``f``, or using ``this.f``. The former will result in an internal
-function, the latter in an external function.
 
 If a function type variable is not initialized, calling it will result
 in an exception. The same happens if you call a function after using ``delete``
@@ -474,11 +471,11 @@ Another example that uses external function types::
       }
       Request[] requests;
       event NewRequest(uint);
-      function query(bytes data, function(bytes memory) external callback) public {
+      function query(bytes memory data, function(bytes memory) external callback) public {
         requests.push(Request(data, callback));
         emit NewRequest(requests.length - 1);
       }
-      function reply(uint requestID, bytes response) public {
+      function reply(uint requestID, bytes memory response) public {
         // Here goes the check that the reply comes from a trusted source
         requests[requestID].callback(response);
       }
@@ -486,10 +483,10 @@ Another example that uses external function types::
 
     contract OracleUser {
       Oracle constant oracle = Oracle(0x1234567); // known contract
-      function buySomething() {
+      function buySomething() public {
         oracle.query("USD", this.oracleResponse);
       }
-      function oracleResponse(bytes response) public {
+      function oracleResponse(bytes memory response) public {
         require(
             msg.sender == address(oracle),
             "Only oracle can call this."
@@ -511,6 +508,8 @@ more carefully than the value-types we have already seen. Since copying
 them can be quite expensive, we have to think about whether we want them to be
 stored in **memory** (which is not persisting) or **storage** (where the state
 variables are held).
+
+.. _data-location:
 
 Data location
 -------------
@@ -543,9 +542,9 @@ memory-stored reference type do not create a copy.
         uint[] x; // the data location of x is storage
 
         // the data location of memoryArray is memory
-        function f(uint[] memoryArray) public {
+        function f(uint[] memory memoryArray) public {
             x = memoryArray; // works, copies the whole array to storage
-            var y = x; // works, assigns a pointer, data location of y is storage
+            uint[] storage y = x; // works, assigns a pointer, data location of y is storage
             y[7]; // fine, returns the 8th element
             y.length = 2; // fine, modifies x through y
             delete x; // fine, clears the array, also modifies y
@@ -560,7 +559,7 @@ memory-stored reference type do not create a copy.
         }
 
         function g(uint[] storage storageArray) internal {}
-        function h(uint[] memoryArray) public {}
+        function h(uint[] memory memoryArray) public {}
     }
 
 Summary
@@ -649,7 +648,7 @@ assigned to a variable right away.
         function f() public pure {
             g([uint(1), 2, 3]);
         }
-        function g(uint[3] _data) public pure {
+        function g(uint[3] memory _data) public pure {
             // ...
         }
     }
@@ -716,7 +715,7 @@ Members
         bool[2][] m_pairsOfFlags;
         // newPairs is stored in memory - the default for function arguments
 
-        function setAllFlagPairs(bool[2][] newPairs) public {
+        function setAllFlagPairs(bool[2][] memory newPairs) public {
             // assignment to a storage array replaces the complete array
             m_pairsOfFlags = newPairs;
         }
@@ -742,7 +741,7 @@ Members
 
         bytes m_byteData;
 
-        function byteArrays(bytes data) public {
+        function byteArrays(bytes memory data) public {
             // byte arrays ("bytes") are different as they are stored without padding,
             // but can be treated identical to "uint8[]"
             m_byteData = data;
@@ -751,11 +750,11 @@ Members
             delete m_byteData[2];
         }
 
-        function addFlag(bool[2] flag) public returns (uint) {
+        function addFlag(bool[2] memory flag) public returns (uint) {
             return m_pairsOfFlags.push(flag);
         }
 
-        function createMemoryArray(uint size) public pure returns (bytes) {
+        function createMemoryArray(uint size) public pure returns (bytes memory) {
             // Dynamic memory arrays are created using `new`:
             uint[2][] memory arrayOfPairs = new uint[2][](size);
             // Create a dynamic byte array:
@@ -849,7 +848,7 @@ Mappings
 ========
 
 Mapping types are declared as ``mapping(_KeyType => _ValueType)``.
-Here ``_KeyType`` can be almost any type except for a mapping, a dynamically sized array, a contract, an enum and a struct.
+Here ``_KeyType`` can be almost any type except for a mapping, a dynamically sized array, a contract, a function, an enum and a struct.
 ``_ValueType`` can actually be any type, including mappings.
 
 Mappings can be seen as `hash tables <https://en.wikipedia.org/wiki/Hash_table>`_ which are virtually initialized such that
@@ -982,27 +981,3 @@ converted to a matching size. This makes alignment and padding explicit::
     uint16 x = 0xffff;
     bytes32(uint256(x)); // pad on the left
     bytes32(bytes2(x)); // pad on the right
-
-.. index:: ! type;deduction, ! var
-
-.. _type-deduction:
-
-Type Deduction
-==============
-
-For convenience, it is not always necessary to explicitly specify the type of a
-variable, the compiler automatically infers it from the type of the first
-expression that is assigned to the variable::
-
-    uint24 x = 0x123;
-    var y = x;
-
-Here, the type of ``y`` will be ``uint24``. Using ``var`` is not possible for function
-parameters or return parameters.
-
-.. warning::
-    The type is only deduced from the first assignment, so
-    the loop in the following snippet is infinite, as ``i`` will have the type
-    ``uint8`` and the highest value of this type is smaller than ``2000``.
-    ``for (var i = 0; i < 2000; i++) { ... }``
-

@@ -63,7 +63,7 @@ BOOST_AUTO_TEST_CASE(abstract_contract)
 {
 	SourceUnit const* sourceUnit = nullptr;
 	char const* text = R"(
-		contract base { function foo(); }
+		contract base { function foo() public; }
 		contract derived is base { function foo() public {} }
 	)";
 	sourceUnit = parseAndAnalyse(text);
@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_CASE(abstract_contract_with_overload)
 {
 	SourceUnit const* sourceUnit = nullptr;
 	char const* text = R"(
-		contract base { function foo(bool); }
+		contract base { function foo(bool) public; }
 		contract derived is base { function foo(uint) public {} }
 	)";
 	sourceUnit = parseAndAnalyse(text);
@@ -99,8 +99,8 @@ BOOST_AUTO_TEST_CASE(implement_abstract_via_constructor)
 {
 	SourceUnit const* sourceUnit = nullptr;
 	char const* text = R"(
-		contract base { function foo(); }
-		contract foo is base { function foo() public {} }
+		contract base { function foo() public; }
+		contract foo is base { constructor() public {} }
 	)";
 	sourceUnit = parseAndAnalyse(text);
 	std::vector<ASTPointer<ASTNode>> nodes = sourceUnit->nodes();
@@ -208,7 +208,7 @@ BOOST_AUTO_TEST_CASE(external_structs)
 			struct X { bytes32 x; Test t; Simple[] s; }
 			function f(ActionChoices, uint, Simple) external {}
 			function g(Test, Nested) external {}
-			function h(function(Nested) external returns (uint)[]) external {}
+			function h(function(Nested memory) external returns (uint)[]) external {}
 			function i(Nested[]) external {}
 		}
 	)";
@@ -236,7 +236,7 @@ BOOST_AUTO_TEST_CASE(external_structs_in_libraries)
 			struct X { bytes32 x; Test t; Simple[] s; }
 			function f(ActionChoices, uint, Simple) external {}
 			function g(Test, Nested) external {}
-			function h(function(Nested) external returns (uint)[]) external {}
+			function h(function(Nested memory) external returns (uint)[]) external {}
 			function i(Nested[]) external {}
 		}
 	)";
@@ -350,18 +350,18 @@ BOOST_AUTO_TEST_CASE(dynamic_return_types_not_possible)
 {
 	char const* sourceCode = R"(
 		contract C {
-			function f(uint) public returns (string);
+			function f(uint) public returns (string memory);
 			function g() public {
-				var x = this.f(2);
+				string memory x = this.f(2);
 				// we can assign to x but it is not usable.
 				bytes(x).length;
 			}
 		}
 	)";
 	if (dev::test::Options::get().evmVersion() == EVMVersion::homestead())
-		CHECK_ERROR(sourceCode, TypeError, "Explicit type conversion not allowed from \"inaccessible dynamic type\" to \"bytes storage pointer\".");
+		CHECK_ERROR(sourceCode, TypeError, "Type inaccessible dynamic type is not implicitly convertible to expected type string memory.");
 	else
-		CHECK_WARNING(sourceCode, "Use of the \"var\" keyword is deprecated");
+		CHECK_SUCCESS_NO_WARNINGS(sourceCode);
 }
 
 BOOST_AUTO_TEST_CASE(warn_nonpresent_pragma)

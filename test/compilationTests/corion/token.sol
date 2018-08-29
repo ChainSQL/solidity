@@ -22,7 +22,7 @@ contract token is safeMath, module, announcementTypes {
         return true;
     }
     modifier isReady {
-        var (_success, _active) = super.isActive();
+        (bool _success, bool _active) = super.isActive();
         require( _success && _active ); 
         _;
     }
@@ -47,8 +47,8 @@ contract token is safeMath, module, announcementTypes {
     bool    public isICO                   = true;
     
     mapping(address => bool) public genesis;
-    
-    function token(bool forReplace, address moduleHandler, address dbAddr, address icoContractAddr, address exchangeContractAddress, address[] genesisAddr, uint256[] genesisValue) payable {
+
+    constructor(bool forReplace, address moduleHandler, address dbAddr, address icoContractAddr, address exchangeContractAddress, address[] memory genesisAddr, uint256[] memory genesisValue) public payable {
         /*
             Installation function
             
@@ -63,9 +63,9 @@ contract token is safeMath, module, announcementTypes {
             @genesisValue               Array of balance of genesis addresses
         */
         super.registerModuleHandler(moduleHandler);
-        require( dbAddr != 0x00 );
-        require( icoContractAddr != 0x00 );
-        require( exchangeContractAddress != 0x00 );
+        require( dbAddr != address(0x00) );
+        require( icoContractAddr != address(0x00) );
+        require( exchangeContractAddress != address(0x00) );
         db = tokenDB(dbAddr);
         icoAddr = icoContractAddr;
         exchangeAddress = exchangeContractAddress;
@@ -73,12 +73,12 @@ contract token is safeMath, module, announcementTypes {
         if ( ! forReplace ) {
             require( db.replaceOwner(this) );
             assert( genesisAddr.length == genesisValue.length );
-            require( this.balance >= genesisAddr.length * 0.2 ether );
+            require( address(this).balance >= genesisAddr.length * 0.2 ether );
             for ( uint256 a=0 ; a<genesisAddr.length ; a++ ) {
                 genesis[genesisAddr[a]] = true;
                 require( db.increase(genesisAddr[a], genesisValue[a]) );
                 if ( ! genesisAddr[a].send(0.2 ether) ) {}
-                Mint(genesisAddr[a], genesisValue[a]);
+                emit Mint(genesisAddr[a], genesisValue[a]);
             }
         }
     }
@@ -152,10 +152,10 @@ contract token is safeMath, module, announcementTypes {
         require( msg.sender != spender );
         require( db.balanceOf(msg.sender) >= amount );
         require( db.setAllowance(msg.sender, spender, amount, nonce) );
-        Approval(msg.sender, spender, amount);
+        emit Approval(msg.sender, spender, amount);
     }
-    
-    function allowance(address owner, address spender) constant returns (uint256 remaining, uint256 nonce) {
+
+    function allowance(address owner, address spender) public view returns (uint256 remaining, uint256 nonce) {
         /*
             Get the quantity of tokens given to be used
             
@@ -165,7 +165,7 @@ contract token is safeMath, module, announcementTypes {
             @remaining     Tokens to be spent
             @nonce         Transaction count
         */
-        var (_success, _remaining, _nonce) = db.getAllowance(owner, spender);
+        (bool _success, uint256 _remaining, uint256 _nonce) = db.getAllowance(owner, spender);
         require( _success );
         return (_remaining, _nonce);
     }
@@ -193,7 +193,7 @@ contract token is safeMath, module, announcementTypes {
         } else {
             _transfer( msg.sender, to, amount, true);
         }
-        Transfer(msg.sender, to, amount, _data);
+        emit Transfer(msg.sender, to, amount, _data);
         return true;
     }
     
@@ -217,12 +217,12 @@ contract token is safeMath, module, announcementTypes {
             @success    Was the Function successful?
         */
         if ( from != msg.sender ) {
-            var (_success, _reamining, _nonce) = db.getAllowance(from, msg.sender);
+            (bool _success, uint256 _reamining, uint256 _nonce) = db.getAllowance(from, msg.sender);
             require( _success );
             _reamining = safeSub(_reamining, amount);
             _nonce = safeAdd(_nonce, 1);
             require( db.setAllowance(from, msg.sender, _reamining, _nonce) );
-            AllowanceUsed(msg.sender, from, amount);
+            emit AllowanceUsed(msg.sender, from, amount);
         }
         bytes memory _data;
         if ( isContract(to) ) {
@@ -230,7 +230,7 @@ contract token is safeMath, module, announcementTypes {
         } else {
             _transfer( from, to, amount, true);
         }
-        Transfer(from, to, amount, _data);
+        emit Transfer(from, to, amount, _data);
         return true;
     }
     
@@ -256,7 +256,7 @@ contract token is safeMath, module, announcementTypes {
         bytes memory _data;
         require( super.isModuleHandler(msg.sender) );
         _transfer( from, to, amount, fee);
-        Transfer(from, to, amount, _data);
+        emit Transfer(from, to, amount, _data);
         return true;
     }
     
@@ -284,11 +284,11 @@ contract token is safeMath, module, announcementTypes {
         } else {
             _transfer( msg.sender, to, amount, true);
         }
-        Transfer(msg.sender, to, amount, extraData);
+        emit Transfer(msg.sender, to, amount, extraData);
         return true;
     }
     
-    function _transferToContract(address from, address to, uint256 amount, bytes extraData) internal {
+    function _transferToContract(address from, address to, uint256 amount, bytes memory extraData) internal {
         /*
             Internal function to start transactions to a contract
             
@@ -298,7 +298,7 @@ contract token is safeMath, module, announcementTypes {
             @extraData      Extra data the receiver will get
         */
         _transfer(from, to, amount, exchangeAddress == to);
-        var (_success, _back) = thirdPartyContractAbstract(to).receiveCorionToken(from, amount, extraData);
+        (bool _success, uint256 _back) = thirdPartyContractAbstract(to).receiveCorionToken(from, amount, extraData);
         require( _success );
         require( amount > _back );
         if ( _back > 0 ) {
@@ -321,11 +321,11 @@ contract token is safeMath, module, announcementTypes {
             @fee        Deduct transaction fee - yes or no?
         */
         if( fee ) {
-            var (success, _fee) = getTransactionFee(amount);
+            (bool success, uint256 _fee) = getTransactionFee(amount);
             require( success );
             require( db.balanceOf(from) >= amount + _fee );
         }
-        require( from != 0x00 && to != 0x00 && to != 0xa636a97578d26a3b76b060bbc18226d954cf3757 );
+        require( from != address(0x00) && to != address(0x00) && to != 0xa636A97578d26A3b76B060Bbc18226d954cf3757 );
         require( ( ! isICO) || genesis[from] );
         require( db.decrease(from, amount) );
         require( db.increase(to, amount) );
@@ -366,7 +366,7 @@ contract token is safeMath, module, announcementTypes {
             @value      Quantity to calculate the fee
         */
         if ( isICO ) { return; }
-        var (_success, _fee) = getTransactionFee(value);
+        (bool _success, uint256 _fee) = getTransactionFee(value);
         require( _success );
         uint256 _forBurn = _fee * transactionFeeBurn / 100;
         uint256 _forSchelling = _fee - _forBurn;
@@ -374,19 +374,19 @@ contract token is safeMath, module, announcementTypes {
         address _schellingAddr;
         (_success, _found, _schellingAddr) = moduleHandler(moduleHandlerAddress).getModuleAddressByName('Schelling');
         require( _success );
-        if ( _schellingAddr != 0x00 && _found) {
+        if ( _schellingAddr != address(0x00) && _found) {
             require( db.decrease(owner, _forSchelling) );
             require( db.increase(_schellingAddr, _forSchelling) );
             _burn(owner, _forBurn);
             bytes memory _data;
-            Transfer(owner, _schellingAddr, _forSchelling, _data);
+            emit Transfer(owner, _schellingAddr, _forSchelling, _data);
             require( moduleHandler(moduleHandlerAddress).broadcastTransfer(owner, _schellingAddr, _forSchelling) );
         } else {
             _burn(owner, _fee);
         }
     }
     
-    function getTransactionFee(uint256 value) public constant returns (bool success, uint256 fee) {
+    function getTransactionFee(uint256 value) public view returns (bool success, uint256 fee) {
         /*
             Transaction fee query.
             
@@ -424,11 +424,11 @@ contract token is safeMath, module, announcementTypes {
             @value     Quantity
         */
         require( db.increase(owner, value) );
-        require( moduleHandler(moduleHandlerAddress).broadcastTransfer(0x00, owner, value) );
+        require( moduleHandler(moduleHandlerAddress).broadcastTransfer(address(0x00), owner, value) );
         if ( isICO ) {
             require( ico(icoAddr).setInterestDB(owner, db.balanceOf(owner)) );
         }
-        Mint(owner, value);
+        emit Mint(owner, value);
     }
     
     function burn(address owner, uint256 value) isReady external returns (bool success) {
@@ -453,8 +453,8 @@ contract token is safeMath, module, announcementTypes {
             @value     Quantity
         */
         require( db.decrease(owner, value) );
-        require( moduleHandler(moduleHandlerAddress).broadcastTransfer(owner, 0x00, value) );
-        Burn(owner, value);
+        require( moduleHandler(moduleHandlerAddress).broadcastTransfer(owner, address(0x00), value) );
+        emit Burn(owner, value);
     }
     
     function isContract(address addr) internal returns (bool success) {
@@ -471,8 +471,8 @@ contract token is safeMath, module, announcementTypes {
         }
         return _codeLength > 0;
     }
-    
-    function balanceOf(address owner) constant returns (uint256 value) {
+
+    function balanceOf(address owner) public view returns (uint256 value) {
         /*
             Token balance query
             
@@ -482,8 +482,8 @@ contract token is safeMath, module, announcementTypes {
         */
         return db.balanceOf(owner);
     }
-    
-    function totalSupply() constant returns (uint256 value) {
+
+    function totalSupply() public view returns (uint256 value) {
         /*
             Total token quantity query
             

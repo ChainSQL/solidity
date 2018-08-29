@@ -2,14 +2,14 @@
 
 .. _ABI:
 
-******************************************
-Application Binary Interface Specification
-******************************************
+**************************
+Contract ABI Specification
+**************************
 
 Basic Design
 ============
 
-The Application Binary Interface is the standard way to interact with contracts in the Ethereum ecosystem, both
+The Contract Application Binary Interface (ABI) is the standard way to interact with contracts in the Ethereum ecosystem, both
 from outside the blockchain and for contract-to-contract interaction. Data is encoded according to its type,
 as described in this specification.  The encoding is not self describing and thus requires a schema in order to decode.
 
@@ -193,9 +193,9 @@ Given the contract:
     pragma solidity ^0.4.16;
 
     contract Foo {
-      function bar(bytes3[2]) public pure {}
+      function bar(bytes3[2] memory) public pure {}
       function baz(uint32 x, bool y) public pure returns (bool r) { r = x > 32 || y; }
-      function sam(bytes, bool, uint[]) public pure {}
+      function sam(bytes memory, bool, uint[] memory) public pure {}
     }
 
 
@@ -277,6 +277,106 @@ All together, the encoding is (newline after function selector and each 32-bytes
       000000000000000000000000000000000000000000000000000000000000000d
       48656c6c6f2c20776f726c642100000000000000000000000000000000000000
 
+Let us apply the same principle to encode the data for a function with a signature ``g(uint[][],string[])`` with values ``([[1, 2], [3]], ["one", "two", "three"])`` but start from the most atomic parts of the encoding:
+
+First we encode the length and data of the first embedded dynamic array ``[1, 2]`` of the first root array ``[[1, 2], [3]]``:
+
+ - ``0x0000000000000000000000000000000000000000000000000000000000000002`` (number of elements in the first array, 2; the elements themselves are ``1``  and ``2``)
+ - ``0x0000000000000000000000000000000000000000000000000000000000000001`` (first element)
+ - ``0x0000000000000000000000000000000000000000000000000000000000000002`` (second element)
+
+Then we encode the length and data of the second embedded dynamic array ``[3]`` of the first root array ``[[1, 2], [3]]``:
+
+ - ``0x0000000000000000000000000000000000000000000000000000000000000001`` (number of elements in the second array, 1; the element is ``3``)
+ - ``0x0000000000000000000000000000000000000000000000000000000000000003`` (first element)
+
+Then we need to find the offsets ``a`` and ``b`` for their respective dynamic arrays  ``[1, 2]`` and ``[3]``. To calculate the offsets we can take a look at the encoded data of the first root array ``[[1, 2], [3]]`` enumerating each line in the encoding:
+
+::
+
+ 0 - a                                                                - offset of [1, 2]
+ 1 - b                                                                - offset of [3]
+ 2 - 0000000000000000000000000000000000000000000000000000000000000002 - count for [1, 2]
+ 3 - 0000000000000000000000000000000000000000000000000000000000000001 - encoding of 1
+ 4 - 0000000000000000000000000000000000000000000000000000000000000002 - encoding of 2
+ 5 - 0000000000000000000000000000000000000000000000000000000000000001 - count for [3]
+ 6 - 0000000000000000000000000000000000000000000000000000000000000003 - encoding of 3
+
+Offset ``a`` points to the start of the content of the array ``[1, 2]`` which is line 2 (64 bytes); thus ``a = 0x0000000000000000000000000000000000000000000000000000000000000040``.
+
+Offset ``b`` points to the start of the content of the array ``[3]`` which is line 5 (160 bytes); thus ``b = 0x00000000000000000000000000000000000000000000000000000000000000a0``.
+
+
+Then we encode the embedded strings of the second root array:
+
+ - ``0x0000000000000000000000000000000000000000000000000000000000000003`` (number of characters in word ``"one"``)
+ - ``0x6f6e650000000000000000000000000000000000000000000000000000000000`` (utf8 representation of word ``"one"``)
+ - ``0x0000000000000000000000000000000000000000000000000000000000000003`` (number of characters in word ``"two"``)
+ - ``0x74776f0000000000000000000000000000000000000000000000000000000000`` (utf8 representation of word ``"two"``)
+ - ``0x0000000000000000000000000000000000000000000000000000000000000005`` (number of characters in word ``"three"``)
+ - ``0x7468726565000000000000000000000000000000000000000000000000000000`` (utf8 representation of word ``"three"``)
+
+In parallel to the first root array, since strings are dynamic elements we need to find their offsets ``c``, ``d`` and ``e``:
+
+::
+
+ 0 - c                                                                - offset for "one"
+ 1 - d                                                                - offset for "two"
+ 2 - e                                                                - offset for "three"
+ 3 - 0000000000000000000000000000000000000000000000000000000000000003 - count for "one"
+ 4 - 6f6e650000000000000000000000000000000000000000000000000000000000 - encoding of "one"
+ 5 - 0000000000000000000000000000000000000000000000000000000000000003 - count for "two"
+ 6 - 74776f0000000000000000000000000000000000000000000000000000000000 - encoding of "two"
+ 7 - 0000000000000000000000000000000000000000000000000000000000000005 - count for "three"
+ 8 - 7468726565000000000000000000000000000000000000000000000000000000 - encoding of "three"
+
+Offset ``c`` points to the start of the content of the string ``"one"`` which is line 3 (96 bytes); thus ``c = 0x0000000000000000000000000000000000000000000000000000000000000060``.
+
+Offset ``d`` points to the start of the content of the string ``"two"`` which is line 5 (160 bytes); thus ``d = 0x00000000000000000000000000000000000000000000000000000000000000a0``.
+
+Offset ``e`` points to the start of the content of the string ``"three"`` which is line 7 (224 bytes); thus ``e = 0x00000000000000000000000000000000000000000000000000000000000000e0``.
+
+
+Note that the encodings of the embedded elements of the root arrays are not dependent on each other and have the same encodings for a function with a signature ``g(string[],uint[][])``.
+
+Then we encode the length of the first root array:
+
+ - ``0x0000000000000000000000000000000000000000000000000000000000000002`` (number of elements in the first root array, 2; the elements themselves are ``[1, 2]``  and ``[3]``)
+
+Then we encode the length of the second root array:
+
+ - ``0x0000000000000000000000000000000000000000000000000000000000000003`` (number of strings in the second root array, 3; the strings themselves are ``"one"``, ``"two"`` and ``"three"``)
+
+Finally we find the offsets ``f`` and ``g`` for their respective root dynamic arrays ``[[1, 2], [3]]`` and ``["one", "two", "three"]``, and assemble parts in the correct order:
+
+::
+
+ 0x2289b18c                                                            - function signature
+  0 - f                                                                - offset of [[1, 2], [3]]
+  1 - g                                                                - offset of ["one", "two", "three"]
+  2 - 0000000000000000000000000000000000000000000000000000000000000002 - count for [[1, 2], [3]]
+  3 - 0000000000000000000000000000000000000000000000000000000000000040 - offset of [1, 2]
+  4 - 00000000000000000000000000000000000000000000000000000000000000a0 - offset of [3]
+  5 - 0000000000000000000000000000000000000000000000000000000000000002 - count for [1, 2]
+  6 - 0000000000000000000000000000000000000000000000000000000000000001 - encoding of 1
+  7 - 0000000000000000000000000000000000000000000000000000000000000002 - encoding of 2
+  8 - 0000000000000000000000000000000000000000000000000000000000000001 - count for [3]
+  9 - 0000000000000000000000000000000000000000000000000000000000000003 - encoding of 3
+ 10 - 0000000000000000000000000000000000000000000000000000000000000003 - count for ["one", "two", "three"]
+ 11 - 0000000000000000000000000000000000000000000000000000000000000060 - offset for "one"
+ 12 - 00000000000000000000000000000000000000000000000000000000000000a0 - offset for "two"
+ 13 - 00000000000000000000000000000000000000000000000000000000000000e0 - offset for "three"
+ 14 - 0000000000000000000000000000000000000000000000000000000000000003 - count for "one"
+ 15 - 6f6e650000000000000000000000000000000000000000000000000000000000 - encoding of "one"
+ 16 - 0000000000000000000000000000000000000000000000000000000000000003 - count for "two"
+ 17 - 74776f0000000000000000000000000000000000000000000000000000000000 - encoding of "two"
+ 18 - 0000000000000000000000000000000000000000000000000000000000000005 - count for "three"
+ 19 - 7468726565000000000000000000000000000000000000000000000000000000 - encoding of "three"
+
+Offset ``f`` points to the start of the content of the array ``[[1, 2], [3]]`` which is line 2 (64 bytes); thus ``f = 0x0000000000000000000000000000000000000000000000000000000000000040``.
+
+Offset ``g`` points to the start of the content of the array ``["one", "two", "three"]`` which is line 10 (320 bytes); thus ``g = 0x0000000000000000000000000000000000000000000000000000000000000140``.
+
 Events
 ======
 
@@ -310,15 +410,19 @@ A function description is a JSON object with the fields:
   * ``components``: used for tuple types (more below).
 
 - ``outputs``: an array of objects similar to ``inputs``, can be omitted if function doesn't return anything;
-- ``payable``: ``true`` if function accepts ether, defaults to ``false``;
-- ``stateMutability``: a string with one of the following values: ``pure`` (:ref:`specified to not read blockchain state <pure-functions>`), ``view`` (:ref:`specified to not modify the blockchain state <view-functions>`), ``nonpayable`` and ``payable`` (same as ``payable`` above).
-- ``constant``: ``true`` if function is either ``pure`` or ``view``
+- ``stateMutability``: a string with one of the following values: ``pure`` (:ref:`specified to not read blockchain state <pure-functions>`), ``view`` (:ref:`specified to not modify the blockchain state <view-functions>`), ``nonpayable`` (function does not accept ether) and ``payable`` (function accepts ether);
+- ``payable``: ``true`` if function accepts ether, ``false`` otherwise;
+- ``constant``: ``true`` if function is either ``pure`` or ``view``, ``false`` otherwise.
 
-``type`` can be omitted, defaulting to ``"function"``.
+``type`` can be omitted, defaulting to ``"function"``, likewise ``payable`` and ``constant`` can be omitted, both defaulting to ``false``.
 
 Constructor and fallback function never have ``name`` or ``outputs``. Fallback function doesn't have ``inputs`` either.
 
-Sending non-zero ether to non-payable function will throw. Don't do it.
+.. warning::
+    The fields ``constant`` and ``payable`` are deprecated and will be removed in the future. Instead, the ``stateMutability`` field can be used to determine the same properties.
+
+.. note::
+    Sending non-zero ether to non-payable function will revert the transaction.
 
 An event description is a JSON object with fairly similar fields:
 
@@ -337,13 +441,13 @@ For example,
 
 ::
 
-    pragma solidity ^0.4.0;
+    pragma solidity >0.4.24;
 
     contract Test {
-      function Test() public { b = 0x12345678901234567890123456789012; }
+      constructor() public { b = 0x12345678901234567890123456789012; }
       event Event(uint indexed a, bytes32 b);
       event Event2(uint indexed a, bytes32 b);
-      function foo(uint a) public { Event(a, b); }
+      function foo(uint a) public { emit Event(a, b); }
       bytes32 b;
     }
 
@@ -390,8 +494,8 @@ As an example, the code
     contract Test {
       struct S { uint a; uint[] b; T[] c; }
       struct T { uint x; uint y; }
-      function f(S s, T t, uint a) public { }
-      function g() public returns (S s, T t, uint a) {}
+      function f(S memory s, T memory t, uint a) public { }
+      function g() public returns (S memory s, T memory t, uint a) {}
     }
 
 would result in the JSON:
@@ -459,7 +563,7 @@ would result in the JSON:
 Non-standard Packed Mode
 ========================
 
-Solidity supports a non-standard packed mode where:
+Through ``abi.encodePacked()``, Solidity supports a non-standard packed mode where:
 
 - no :ref:`function selector <abi_function_selector>` is encoded,
 - types shorter than 32 bytes are neither zero padded nor sign extended and
@@ -477,3 +581,9 @@ More specifically, each statically-sized type takes as many bytes as its range h
 and dynamically-sized types like ``string``, ``bytes`` or ``uint[]`` are encoded without
 their length field. This means that the encoding is ambiguous as soon as there are two
 dynamically-sized elements.
+
+Note that constants will be packed using the minimum number of bytes required to store them.
+This means that, for example, ``abi.encodePacked(0) == abi.encodePacked(uint8(0)) == hex"00"`` and
+``abi.encodePacked(0x12345678) == abi.encodePacked(uint32(0x12345678)) == hex"12345678"``.
+
+If padding is needed, explicit type conversions can be used: ``abi.encodePacked(uint16(0x12)) == hex"0012"``.

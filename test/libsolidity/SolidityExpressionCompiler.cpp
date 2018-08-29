@@ -77,7 +77,7 @@ Declaration const& resolveDeclaration(
 )
 {
 	ASTNode const* scope = &_sourceUnit;
-	// bracers are required, cause msvc couldnt handle this macro in for statement
+	// bracers are required, cause msvc couldn't handle this macro in for statement
 	for (string const& namePart: _namespacedName)
 	{
 		auto declarations = _resolver.resolveName(namePart, scope);
@@ -175,7 +175,7 @@ BOOST_AUTO_TEST_CASE(literal_true)
 {
 	char const* sourceCode = R"(
 		contract test {
-			function f() { var x = true; }
+			function f() public { bool x = true; }
 		}
 	)";
 	bytes code = compileFirstExpression(sourceCode);
@@ -188,7 +188,7 @@ BOOST_AUTO_TEST_CASE(literal_false)
 {
 	char const* sourceCode = R"(
 		contract test {
-			function f() { var x = false; }
+			function f() { bool x = false; }
 		}
 	)";
 	bytes code = compileFirstExpression(sourceCode);
@@ -201,7 +201,7 @@ BOOST_AUTO_TEST_CASE(int_literal)
 {
 	char const* sourceCode = R"(
 		contract test {
-		  function f() { var x = 0x12345678901234567890; }
+		  function f() { uint x = 0x12345678901234567890; }
 		}
 	)";
 	bytes code = compileFirstExpression(sourceCode);
@@ -215,8 +215,8 @@ BOOST_AUTO_TEST_CASE(int_with_wei_ether_subdenomination)
 {
 	char const* sourceCode = R"(
 		contract test {
-			function test () {
-				 var x = 1 wei;
+			constructor() {
+				 uint x = 1 wei;
 			}
 		}
 	)";
@@ -231,7 +231,7 @@ BOOST_AUTO_TEST_CASE(int_with_szabo_ether_subdenomination)
 	char const* sourceCode = R"(
 		contract test {
 			function test () {
-				 var x = 1 szabo;
+				uint x = 1 szabo;
 			}
 		}
 	)";
@@ -245,9 +245,9 @@ BOOST_AUTO_TEST_CASE(int_with_finney_ether_subdenomination)
 {
 	char const* sourceCode = R"(
 		contract test {
-			function test ()
+			constructor()
 			{
-				 var x = 1 finney;
+				 uint x = 1 finney;
 			}
 		}
 	)";
@@ -261,8 +261,8 @@ BOOST_AUTO_TEST_CASE(int_with_ether_ether_subdenomination)
 {
 	char const* sourceCode = R"(
 		contract test {
-			function test () {
-				 var x = 1 ether;
+			constructor() {
+				 uint x = 1 ether;
 			}
 		}
 	)";
@@ -276,7 +276,7 @@ BOOST_AUTO_TEST_CASE(comparison)
 {
 	char const* sourceCode = R"(
 		contract test {
-			function f() { var x = (0x10aa < 0x11aa) != true; }
+			function f() { bool x = (0x10aa < 0x11aa) != true; }
 		}
 	)";
 	bytes code = compileFirstExpression(sourceCode);
@@ -294,7 +294,7 @@ BOOST_AUTO_TEST_CASE(short_circuiting)
 {
 	char const* sourceCode = R"(
 		contract test {
-			function f() { var x = true != (4 <= 8 + 10 || 9 != 2); }
+			function f() { bool x = true != (4 <= 8 + 10 || 9 != 2); }
 		}
 	)";
 	bytes code = compileFirstExpression(sourceCode);
@@ -319,7 +319,7 @@ BOOST_AUTO_TEST_CASE(short_circuiting)
 	BOOST_CHECK_EQUAL_COLLECTIONS(code.begin(), code.end(), expectation.begin(), expectation.end());
 }
 
-BOOST_AUTO_TEST_CASE(arithmetics)
+BOOST_AUTO_TEST_CASE(arithmetic)
 {
 	char const* sourceCode = R"(
 		contract test {
@@ -384,7 +384,7 @@ BOOST_AUTO_TEST_CASE(unary_inc_dec)
 {
 	char const* sourceCode = R"(
 		contract test {
-			function f(uint a) returns (uint x) { x = --a ^ (a-- ^ (++a ^ a++)); }
+			function f(uint a) public returns (uint x) { x = --a ^ (a-- ^ (++a ^ a++)); }
 		}
 	)";
 	bytes code = compileFirstExpression(sourceCode, {}, {{"test", "f", "a"}, {"test", "f", "x"}});
@@ -490,7 +490,7 @@ BOOST_AUTO_TEST_CASE(intermediately_overflowing_literals)
 	// have been applied
 	char const* sourceCode = R"(
 		contract test {
-			function f() { var x = (0xffffffffffffffffffffffffffffffffffffffff * 0xffffffffffffffffffffffffff01) & 0xbf; }
+			function f() { uint8 x = (0x00ffffffffffffffffffffffffffffffffffffffff * 0xffffffffffffffffffffffffff01) & 0xbf; }
 		}
 	)";
 	bytes code = compileFirstExpression(sourceCode);
@@ -509,9 +509,9 @@ BOOST_AUTO_TEST_CASE(blockhash)
 		}
 	)";
 
-	auto blockhashFun = make_shared<FunctionType>(strings{"uint256"}, strings{"bytes32"}, 
+	auto blockhashFun = make_shared<FunctionType>(strings{"uint256"}, strings{"bytes32"},
 		FunctionType::Kind::BlockHash, false, StateMutability::View);
-	
+
 	bytes code = compileFirstExpression(sourceCode, {}, {}, {make_shared<MagicVariableDeclaration>("blockhash", blockhashFun)});
 
 	bytes expectation({byte(Instruction::PUSH1), 0x03,
@@ -523,32 +523,17 @@ BOOST_AUTO_TEST_CASE(gas_left)
 {
 	char const* sourceCode = R"(
 		contract test {
-			function f() returns (uint256 val) {
-				return msg.gas;
+			function f() public returns (uint256 val) {
+				return gasleft();
 			}
 		}
 	)";
 	bytes code = compileFirstExpression(
 		sourceCode, {}, {},
-		{make_shared<MagicVariableDeclaration>("msg", make_shared<MagicType>(MagicType::Kind::Message))}
-	);
-
-	bytes expectation({byte(Instruction::GAS)});
-	BOOST_CHECK_EQUAL_COLLECTIONS(code.begin(), code.end(), expectation.begin(), expectation.end());
-
-	sourceCode = R"(
-		contract test {
-			function f() returns (uint256 val) {
-				return gasleft();
-			}
-		}
-	)";
-	code = compileFirstExpression(
-		sourceCode, {}, {},
 		{make_shared<MagicVariableDeclaration>("gasleft", make_shared<FunctionType>(strings(), strings{"uint256"}, FunctionType::Kind::GasLeft))}
 	);
 
-	expectation = bytes({byte(Instruction::GAS)});
+	bytes expectation = bytes({byte(Instruction::GAS)});
 	BOOST_CHECK_EQUAL_COLLECTIONS(code.begin(), code.end(), expectation.begin(), expectation.end());
 }
 

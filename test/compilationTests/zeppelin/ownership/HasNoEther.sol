@@ -21,9 +21,9 @@ contract HasNoEther is Ownable {
   * constructor. By doing it this way we prevent a payable constructor from working. Alternatively 
   * we could use assembly to access msg.value.
   */
-  function HasNoEther() payable {
+  constructor() public payable {
     if(msg.value > 0) {
-      throw;
+      revert();
     }
   }
 
@@ -37,8 +37,8 @@ contract HasNoEther is Ownable {
    * @dev Transfer all Ether held by the contract to the owner.
    */
   function reclaimEther() external onlyOwner {
-    if(!owner.send(this.balance)) {
-      throw;
+    if(!owner.send(address(this).balance)) {
+      revert();
     }
   }
 }

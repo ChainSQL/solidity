@@ -54,7 +54,7 @@ idea is that assembly libraries will be used to enhance the language in such way
     pragma solidity ^0.4.0;
 
     library GetCode {
-        function at(address _addr) public view returns (bytes o_code) {
+        function at(address _addr) public view returns (bytes memory o_code) {
             assembly {
                 // retrieve the size of the code, this needs assembly
                 let size := extcodesize(_addr)
@@ -83,7 +83,7 @@ you really know what you are doing.
     library VectorSum {
         // This function is less efficient because the optimizer currently fails to
         // remove the bounds checks in array access.
-        function sumSolidity(uint[] _data) public view returns (uint o_sum) {
+        function sumSolidity(uint[] memory _data) public view returns (uint o_sum) {
             for (uint i = 0; i < _data.length; ++i)
                 o_sum += _data[i];
         }
@@ -91,7 +91,7 @@ you really know what you are doing.
         // We know that we only access the array in bounds, so we can avoid the check.
         // 0x20 needs to be added to an array because the first slot contains the
         // array length.
-        function sumAsm(uint[] _data) public view returns (uint o_sum) {
+        function sumAsm(uint[] memory _data) public view returns (uint o_sum) {
             for (uint i = 0; i < _data.length; ++i) {
                 assembly {
                     o_sum := add(o_sum, mload(add(add(_data, 0x20), mul(i, 0x20))))
@@ -100,7 +100,7 @@ you really know what you are doing.
         }
 
         // Same as above, but accomplish the entire code within inline assembly.
-        function sumPureAsm(uint[] _data) public view returns (uint o_sum) {
+        function sumPureAsm(uint[] memory _data) public view returns (uint o_sum) {
             assembly {
                // Load the length (first 32 bytes)
                let len := mload(_data)
@@ -212,9 +212,9 @@ In the grammar, opcodes are represented as pre-defined identifiers.
 +-------------------------+-----+---+-----------------------------------------------------------------+
 | sar(x, y)               |     | C | arithmetic shift right y by x bits                              |
 +-------------------------+-----+---+-----------------------------------------------------------------+
-| addmod(x, y, m)         |     | F | (x + y) % m with arbitrary precision arithmetics                |
+| addmod(x, y, m)         |     | F | (x + y) % m with arbitrary precision arithmetic                 |
 +-------------------------+-----+---+-----------------------------------------------------------------+
-| mulmod(x, y, m)         |     | F | (x * y) % m with arbitrary precision arithmetics                |
+| mulmod(x, y, m)         |     | F | (x * y) % m with arbitrary precision arithmetic                 |
 +-------------------------+-----+---+-----------------------------------------------------------------+
 | signextend(i, x)        |     | F | sign extend from (i*8+7)th bit counting from least significant  |
 +-------------------------+-----+---+-----------------------------------------------------------------+
@@ -228,13 +228,13 @@ In the grammar, opcodes are represented as pre-defined identifiers.
 +-------------------------+-----+---+-----------------------------------------------------------------+
 | pop(x)                  | `-` | F | remove the element pushed by x                                  |
 +-------------------------+-----+---+-----------------------------------------------------------------+
-| dup1 ... dup16          |     | F | copy ith stack slot to the top (counting from top)              |
+| dup1 ... dup16          |     | F | copy nth stack slot to the top (counting from top)              |
 +-------------------------+-----+---+-----------------------------------------------------------------+
-| swap1 ... swap16        | `*` | F | swap topmost and ith stack slot below it                        |
+| swap1 ... swap16        | `*` | F | swap topmost and nth stack slot below it                        |
 +-------------------------+-----+---+-----------------------------------------------------------------+
-| mload(p)                |     | F | mem[p..(p+32))                                                  |
+| mload(p)                |     | F | mem[p...(p+32))                                                 |
 +-------------------------+-----+---+-----------------------------------------------------------------+
-| mstore(p, v)            | `-` | F | mem[p..(p+32)) := v                                             |
+| mstore(p, v)            | `-` | F | mem[p...(p+32)) := v                                            |
 +-------------------------+-----+---+-----------------------------------------------------------------+
 | mstore8(p, v)           | `-` | F | mem[p] := v & 0xff (only modifies a single byte)                |
 +-------------------------+-----+---+-----------------------------------------------------------------+
@@ -272,16 +272,16 @@ In the grammar, opcodes are represented as pre-defined identifiers.
 +-------------------------+-----+---+-----------------------------------------------------------------+
 | returndatacopy(t, f, s) | `-` | B | copy s bytes from returndata at position f to mem at position t |
 +-------------------------+-----+---+-----------------------------------------------------------------+
-| create(v, p, s)         |     | F | create new contract with code mem[p..(p+s)) and send v wei      |
+| create(v, p, s)         |     | F | create new contract with code mem[p...(p+s)) and send v wei     |
 |                         |     |   | and return the new address                                      |
 +-------------------------+-----+---+-----------------------------------------------------------------+
-| create2(v, n, p, s)     |     | C | create new contract with code mem[p..(p+s)) at address          |
-|                         |     |   | keccak256(<address> . n . keccak256(mem[p..(p+s))) and send v   |
+| create2(v, n, p, s)     |     | C | create new contract with code mem[p...(p+s)) at address         |
+|                         |     |   | keccak256(<address> . n . keccak256(mem[p...(p+s))) and send v  |
 |                         |     |   | wei and return the new address                                  |
 +-------------------------+-----+---+-----------------------------------------------------------------+
-| call(g, a, v, in,       |     | F | call contract at address a with input mem[in..(in+insize))      |
+| call(g, a, v, in,       |     | F | call contract at address a with input mem[in...(in+insize))     |
 | insize, out, outsize)   |     |   | providing g gas and v wei and output area                       |
-|                         |     |   | mem[out..(out+outsize)) returning 0 on error (eg. out of gas)   |
+|                         |     |   | mem[out...(out+outsize)) returning 0 on error (eg. out of gas)  |
 |                         |     |   | and 1 on success                                                |
 +-------------------------+-----+---+-----------------------------------------------------------------+
 | callcode(g, a, v, in,   |     | F | identical to ``call`` but only use the code from a and stay     |
@@ -293,23 +293,23 @@ In the grammar, opcodes are represented as pre-defined identifiers.
 | staticcall(g, a, in,    |     | B | identical to ``call(g, a, 0, in, insize, out, outsize)`` but do |
 | insize, out, outsize)   |     |   | not allow state modifications                                   |
 +-------------------------+-----+---+-----------------------------------------------------------------+
-| return(p, s)            | `-` | F | end execution, return data mem[p..(p+s))                        |
+| return(p, s)            | `-` | F | end execution, return data mem[p...(p+s))                       |
 +-------------------------+-----+---+-----------------------------------------------------------------+
-| revert(p, s)            | `-` | B | end execution, revert state changes, return data mem[p..(p+s))  |
+| revert(p, s)            | `-` | B | end execution, revert state changes, return data mem[p...(p+s)) |
 +-------------------------+-----+---+-----------------------------------------------------------------+
 | selfdestruct(a)         | `-` | F | end execution, destroy current contract and send funds to a     |
 +-------------------------+-----+---+-----------------------------------------------------------------+
 | invalid                 | `-` | F | end execution with invalid instruction                          |
 +-------------------------+-----+---+-----------------------------------------------------------------+
-| log0(p, s)              | `-` | F | log without topics and data mem[p..(p+s))                       |
+| log0(p, s)              | `-` | F | log without topics and data mem[p...(p+s))                      |
 +-------------------------+-----+---+-----------------------------------------------------------------+
-| log1(p, s, t1)          | `-` | F | log with topic t1 and data mem[p..(p+s))                        |
+| log1(p, s, t1)          | `-` | F | log with topic t1 and data mem[p...(p+s))                       |
 +-------------------------+-----+---+-----------------------------------------------------------------+
-| log2(p, s, t1, t2)      | `-` | F | log with topics t1, t2 and data mem[p..(p+s))                   |
+| log2(p, s, t1, t2)      | `-` | F | log with topics t1, t2 and data mem[p...(p+s))                  |
 +-------------------------+-----+---+-----------------------------------------------------------------+
-| log3(p, s, t1, t2, t3)  | `-` | F | log with topics t1, t2, t3 and data mem[p..(p+s))               |
+| log3(p, s, t1, t2, t3)  | `-` | F | log with topics t1, t2, t3 and data mem[p...(p+s))              |
 +-------------------------+-----+---+-----------------------------------------------------------------+
-| log4(p, s, t1, t2, t3,  | `-` | F | log with topics t1, t2, t3, t4 and data mem[p..(p+s))           |
+| log4(p, s, t1, t2, t3,  | `-` | F | log with topics t1, t2, t3, t4 and data mem[p...(p+s))          |
 | t4)                     |     |   |                                                                 |
 +-------------------------+-----+---+-----------------------------------------------------------------+
 | origin                  |     | F | transaction sender                                              |

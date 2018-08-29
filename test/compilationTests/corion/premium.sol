@@ -19,7 +19,7 @@ contract premium is module, safeMath {
         return true;
     }
     modifier isReady {
-        var (_success, _active) = super.isActive();
+        (bool _success, bool _active) = super.isActive();
         require( _success && _active ); 
         _;
     }
@@ -39,8 +39,8 @@ contract premium is module, safeMath {
     bool    public  isICO;
     
     mapping(address => bool) public genesis;
-    
-    function premium(bool forReplace, address moduleHandler, address dbAddress, address icoContractAddr, address[] genesisAddr, uint256[] genesisValue) {
+
+    constructor(bool forReplace, address moduleHandler, address dbAddress, address icoContractAddr, address[] memory genesisAddr, uint256[] memory genesisValue) public {
         /*
             Setup function.
             If an ICOaddress is defined then the balance of the genesis addresses will be set as well.
@@ -53,7 +53,7 @@ contract premium is module, safeMath {
             @genesisValue       Array of the balance of the genesis addresses
         */
         super.registerModuleHandler(moduleHandler);
-        require( dbAddress != 0x00 );
+        require( dbAddress != address(0x00) );
         db = ptokenDB(dbAddress);
         if ( ! forReplace ) {
             require( db.replaceOwner(this) );
@@ -63,7 +63,7 @@ contract premium is module, safeMath {
             for ( uint256 a=0 ; a<genesisAddr.length ; a++ ) {
                 genesis[genesisAddr[a]] = true;
                 require( db.increase(genesisAddr[a], genesisValue[a]) );
-                Mint(genesisAddr[a], genesisValue[a]);
+                emit Mint(genesisAddr[a], genesisValue[a]);
             }
         }
     }
@@ -118,7 +118,7 @@ contract premium is module, safeMath {
             @extraData      Extra data to be received by the receiver
             @nonce          Transaction count
             
-            @sucess         Was the Function successful?
+            @success         Was the Function successful?
         */
         _approve(spender, amount, nonce);
         require( thirdPartyPContractAbstract(spender).approvedCorionPremiumToken(msg.sender, amount, extraData) );
@@ -137,10 +137,10 @@ contract premium is module, safeMath {
         require( msg.sender != spender );
         require( db.balanceOf(msg.sender) >= amount );
         require( db.setAllowance(msg.sender, spender, amount, nonce) );
-        Approval(msg.sender, spender, amount);
+        emit Approval(msg.sender, spender, amount);
     }
-    
-    function allowance(address owner, address spender) constant returns (uint256 remaining, uint256 nonce) {
+
+    function allowance(address owner, address spender) public view returns (uint256 remaining, uint256 nonce) {
         /*
             Get the quantity of tokens given to be used
             
@@ -150,7 +150,7 @@ contract premium is module, safeMath {
             @remaining      Tokens to be spent
             @nonce          Transaction count
         */
-        var (_success, _remaining, _nonce) = db.getAllowance(owner, spender);
+        (bool _success, uint256 _remaining, uint256 _nonce) = db.getAllowance(owner, spender);
         require( _success );
         return (_remaining, _nonce);
     }
@@ -178,7 +178,7 @@ contract premium is module, safeMath {
         } else {
             _transfer(msg.sender, to, amount);
         }
-        Transfer(msg.sender, to, amount, _data);
+        emit Transfer(msg.sender, to, amount, _data);
         return true;
     }
     
@@ -202,12 +202,12 @@ contract premium is module, safeMath {
             @success    If the function was successful.
         */
         if ( from != msg.sender ) {
-            var (_success, _reamining, _nonce) = db.getAllowance(from, msg.sender);
+            (bool _success, uint256 _reamining, uint256 _nonce) = db.getAllowance(from, msg.sender);
             require( _success );
             _reamining = safeSub(_reamining, amount);
             _nonce = safeAdd(_nonce, 1);
             require( db.setAllowance(from, msg.sender, _reamining, _nonce) );
-            AllowanceUsed(msg.sender, from, amount);
+            emit AllowanceUsed(msg.sender, from, amount);
         }
         bytes memory _data;
         if ( isContract(to) ) {
@@ -215,7 +215,7 @@ contract premium is module, safeMath {
         } else {
             _transfer( from, to, amount);
         }
-        Transfer(from, to, amount, _data);
+        emit Transfer(from, to, amount, _data);
         return true;
     }
     
@@ -242,11 +242,11 @@ contract premium is module, safeMath {
         } else {
             _transfer( msg.sender, to, amount);
         }
-        Transfer(msg.sender, to, amount, extraData);
+        emit Transfer(msg.sender, to, amount, extraData);
         return true;
     }
     
-    function transferToContract(address from, address to, uint256 amount, bytes extraData) internal {
+    function transferToContract(address from, address to, uint256 amount, bytes memory extraData) internal {
         /*
             Inner function in order to transact a contract.
             
@@ -255,7 +255,7 @@ contract premium is module, safeMath {
             @extraData      Extra data that will be given to the receiver
         */
         _transfer(from, to, amount);
-        var (_success, _back) = thirdPartyPContractAbstract(to).receiveCorionPremiumToken(from, amount, extraData);
+        (bool _success, uint256 _back) = thirdPartyPContractAbstract(to).receiveCorionPremiumToken(from, amount, extraData);
         require( _success );
         require( amount > _back );
         if ( _back > 0 ) {
@@ -273,7 +273,7 @@ contract premium is module, safeMath {
             @to        For who?
             @amount    Amount
         */
-        require( from != 0x00 && to != 0x00 && to != 0xa636a97578d26a3b76b060bbc18226d954cf3757 );
+        require( from != address(0x00) && to != address(0x00) && to != 0xa636A97578d26A3b76B060Bbc18226d954cf3757 );
         require( ( ! isICO) || genesis[from] );
         require( db.decrease(from, amount) );
         require( db.increase(to, amount) );
@@ -301,7 +301,7 @@ contract premium is module, safeMath {
             @value     Amount
         */
         require( db.increase(owner, value) );
-        Mint(owner, value);
+        emit Mint(owner, value);
     }
     
     function isContract(address addr) internal returns (bool success) {
@@ -318,8 +318,8 @@ contract premium is module, safeMath {
         }
         return _codeLength > 0;
     }
-    
-    function balanceOf(address owner) constant returns (uint256 value) {
+
+    function balanceOf(address owner) public view returns (uint256 value) {
         /*
             Token balance query
             
@@ -328,8 +328,8 @@ contract premium is module, safeMath {
         */
         return db.balanceOf(owner);
     }
-    
-    function totalSupply() constant returns (uint256 value) {
+
+    function totalSupply() public view returns (uint256 value) {
         /*
             Total token quantity query
             

@@ -91,7 +91,7 @@ BOOST_AUTO_TEST_CASE(warn_on_struct)
 		pragma experimental ABIEncoderV2;
 		contract C {
 			struct A { uint a; uint b; }
-			function f() public pure returns (A) {
+			function f() public pure returns (A memory) {
 				return A({ a: 1, b: 2 });
 			}
 		}
@@ -128,22 +128,6 @@ BOOST_AUTO_TEST_CASE(assignment_in_declaration)
 	string text = R"(
 		contract C {
 			function f() public pure { uint a = 2; assert(a == 2); }
-		}
-	)";
-	CHECK_SUCCESS_NO_WARNINGS(text);
-}
-
-BOOST_AUTO_TEST_CASE(use_before_declaration)
-{
-	string text = R"(
-		contract C {
-			function f() public pure { a = 3; uint a = 2; assert(a == 2); }
-		}
-	)";
-	CHECK_SUCCESS_NO_WARNINGS(text);
-	text = R"(
-		contract C {
-			function f() public pure { assert(a == 0); uint a = 2; assert(a == 2); }
 		}
 	)";
 	CHECK_SUCCESS_NO_WARNINGS(text);
@@ -449,15 +433,15 @@ BOOST_AUTO_TEST_CASE(storage_value_vars)
 			function f(uint x) public {
 				if (x == 0)
 				{
-					a = 100;
+					a = 0x0000000000000000000000000000000000000100;
 					b = true;
 				}
 				else
 				{
-					a = 200;
+					a = 0x0000000000000000000000000000000000000200;
 					b = false;
 				}
-				assert(a > 0 && b);
+				assert(a > 0x0000000000000000000000000000000000000000 && b);
 			}
 		}
 	)";
@@ -480,19 +464,19 @@ BOOST_AUTO_TEST_CASE(storage_value_vars)
 			function f(uint x) public {
 				if (x == 0)
 				{
-					a = 100;
+					a = 0x0000000000000000000000000000000000000100;
 					b = true;
 				}
 				else
 				{
-					a = 200;
+					a = 0x0000000000000000000000000000000000000200;
 					b = false;
 				}
-				assert(b == (a < 200));
+				assert(b == (a < 0x0000000000000000000000000000000000000200));
 			}
 
 			function g() public view {
-				require(a < 100);
+				require(a < 0x0000000000000000000000000000000000000100);
 				assert(c >= 0);
 			}
 			address a;

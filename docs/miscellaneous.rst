@@ -79,6 +79,7 @@ Solidity always places new objects at the free memory pointer and memory is neve
 .. warning::
   There are some operations in Solidity that need a temporary memory area larger than 64 bytes and therefore will not fit into the scratch space. They will be placed where the free memory points to, but given their short lifecycle, the pointer is not updated. The memory may or may not be zeroed out. Because of this, one shouldn't expect the free memory to be zeroed out.
 
+  While it may seem like a good idea to use ``msize`` to arrive at a definitely zeroed out memory area, using such a pointer non-temporarily without updating the free memory pointer can have adverse results.
 
 .. index: calldata layout
 
@@ -156,7 +157,7 @@ These steps are applied to each basic block and the newly generated code is used
 
 ::
 
-    var x = 7;
+    uint x = 7;
     data[7] = 9;
     if (data[x] != x + 2)
       return 2;
@@ -318,10 +319,10 @@ Global Variables
 ================
 
 - ``abi.encode(...) returns (bytes)``: :ref:`ABI <ABI>`-encodes the given arguments
-- ``abi.encodePacked(...) returns (bytes)``: Performes :ref:`packed encoding <abi_packed_mode>` of the given arguments
+- ``abi.encodePacked(...) returns (bytes)``: Performs :ref:`packed encoding <abi_packed_mode>` of the given arguments
 - ``abi.encodeWithSelector(bytes4 selector, ...) returns (bytes)``: :ref:`ABI <ABI>`-encodes the given arguments
    starting from the second and prepends the given four-byte selector
-- ``abi.encodeWithSignature(string signature, ...) returns (bytes)``: Equivalent to ``abi.encodeWithSelector(bytes4(keccak256(signature), ...)```
+- ``abi.encodeWithSignature(string signature, ...) returns (bytes)``: Equivalent to ``abi.encodeWithSelector(bytes4(keccak256(bytes(signature)), ...)```
 - ``block.blockhash(uint blockNumber) returns (bytes32)``: hash of the given block - only works for 256 most recent, excluding current, blocks - deprecated in version 0.4.22 and replaced by ``blockhash(uint blockNumber)``.
 - ``block.coinbase`` (``address``): current block miner's address
 - ``block.difficulty`` (``uint``): current block difficulty
@@ -342,10 +343,10 @@ Global Variables
 - ``revert()``: abort execution and revert state changes
 - ``revert(string message)``: abort execution and revert state changes providing an explanatory string
 - ``blockhash(uint blockNumber) returns (bytes32)``: hash of the given block - only works for 256 most recent blocks
-- ``keccak256(...) returns (bytes32)``: compute the Ethereum-SHA-3 (Keccak-256) hash of the :ref:`(tightly packed) arguments <abi_packed_mode>`
-- ``sha3(...) returns (bytes32)``: an alias to ``keccak256``
-- ``sha256(...) returns (bytes32)``: compute the SHA-256 hash of the :ref:`(tightly packed) arguments <abi_packed_mode>`
-- ``ripemd160(...) returns (bytes20)``: compute the RIPEMD-160 hash of the :ref:`(tightly packed) arguments <abi_packed_mode>`
+- ``keccak256(bytes memory) returns (bytes32)``: compute the Ethereum-SHA-3 (Keccak-256) hash of the input
+- ``sha3(bytes memory) returns (bytes32)``: an alias to ``keccak256``
+- ``sha256(bytes memory) returns (bytes32)``: compute the SHA-256 hash of the input
+- ``ripemd160(bytes memory) returns (bytes20)``: compute the RIPEMD-160 hash of the input
 - ``ecrecover(bytes32 hash, uint8 v, bytes32 r, bytes32 s) returns (address)``: recover address associated with the public key from elliptic curve signature, return zero on error
 - ``addmod(uint x, uint y, uint k) returns (uint)``: compute ``(x + y) % k`` where the addition is performed with arbitrary precision and does not wrap around at ``2**256``. Assert that ``k != 0`` starting from version 0.5.0.
 - ``mulmod(uint x, uint y, uint k) returns (uint)``: compute ``(x * y) % k`` where the multiplication is performed with arbitrary precision and does not wrap around at ``2**256``. Assert that ``k != 0`` starting from version 0.5.0.
@@ -396,11 +397,10 @@ Function Visibility Specifiers
 Modifiers
 =========
 
-- ``pure`` for functions: Disallows modification or access of state - this is not enforced yet.
-- ``view`` for functions: Disallows modification of state - this is not enforced yet.
+- ``pure`` for functions: Disallows modification or access of state.
+- ``view`` for functions: Disallows modification of state.
 - ``payable`` for functions: Allows them to receive Ether together with a call.
 - ``constant`` for state variables: Disallows assignment (except initialisation), does not occupy storage slot.
-- ``constant`` for functions: Same as ``view``.
 - ``anonymous`` for events: Does not store event signature as topic.
 - ``indexed`` for event parameters: Stores the parameter as topic.
 

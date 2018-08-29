@@ -66,10 +66,11 @@ private:
 
 	virtual bool visit(PlaceholderStatement const& _placeholderStatement) override;
 
+	virtual bool visit(ContractDefinition const& _contract) override;
 	virtual bool visit(FunctionDefinition const& _function) override;
 	virtual bool visit(FunctionTypeName const& _node) override;
 
-	virtual bool visit(VariableDeclaration const& _declaration) override;
+	virtual bool visit(VariableDeclarationStatement const& _statement) override;
 
 	virtual bool visit(StructDefinition const& _struct) override;
 
@@ -82,6 +83,7 @@ private:
 	bool m_versionPragmaFound = false;
 
 	int m_inLoopDepth = 0;
+	bool m_isInterface = false;
 
 	SourceUnit const* m_sourceUnit = nullptr;
 };

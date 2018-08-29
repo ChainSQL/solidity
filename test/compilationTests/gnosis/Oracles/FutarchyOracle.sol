@@ -55,7 +55,7 @@ contract FutarchyOracle is Oracle {
     /// @param marketMaker Market maker contract
     /// @param fee Market fee
     /// @param _deadline Decision deadline
-    function FutarchyOracle(
+    constructor(
         address _creator,
         EventFactory eventFactory,
         Token collateralToken,
@@ -105,7 +105,7 @@ contract FutarchyOracle is Oracle {
             require(market.eventContract().collateralToken().approve(market, funding));
             market.fund(funding);
         }
-        FutarchyFunding(funding);
+        emit FutarchyFunding(funding);
     }
 
     /// @dev Closes market for winning outcome and redeems winnings and sends all collateral tokens to creator
@@ -123,7 +123,7 @@ contract FutarchyOracle is Oracle {
         // Redeem collateral token for winning outcome tokens and transfer collateral tokens to creator
         categoricalEvent.redeemWinnings();
         require(categoricalEvent.collateralToken().transfer(creator, categoricalEvent.collateralToken().balanceOf(this)));
-        FutarchyClosing();
+        emit FutarchyClosing();
     }
 
     /// @dev Allows to set the oracle outcome based on the market with largest long position
@@ -144,14 +144,14 @@ contract FutarchyOracle is Oracle {
         }
         winningMarketIndex = highestIndex;
         isSet = true;
-        OutcomeAssignment(winningMarketIndex);
+        emit OutcomeAssignment(winningMarketIndex);
     }
 
     /// @dev Returns if winning outcome is set
     /// @return Is outcome set?
     function isOutcomeSet()
         public
-        constant
+        view
         returns (bool)
     {
         return isSet;
@@ -161,7 +161,7 @@ contract FutarchyOracle is Oracle {
     /// @return Outcome
     function getOutcome()
         public
-        constant
+        view
         returns (int)
     {
         return int(winningMarketIndex);

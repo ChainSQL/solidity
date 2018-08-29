@@ -48,9 +48,7 @@ bool ReferencesResolver::visit(Block const& _block)
 	if (!m_resolveInsideCode)
 		return false;
 	m_experimental050Mode = _block.sourceUnit().annotation().experimentalFeatures.count(ExperimentalFeature::V050);
-	// C99-scoped variables
-	if (m_experimental050Mode)
-		m_resolver.setScope(&_block);
+	m_resolver.setScope(&_block);
 	return true;
 }
 
@@ -59,9 +57,7 @@ void ReferencesResolver::endVisit(Block const& _block)
 	if (!m_resolveInsideCode)
 		return;
 
-	// C99-scoped variables
-	if (m_experimental050Mode)
-		m_resolver.setScope(_block.scope());
+	m_resolver.setScope(_block.scope());
 }
 
 bool ReferencesResolver::visit(ForStatement const& _for)
@@ -69,9 +65,7 @@ bool ReferencesResolver::visit(ForStatement const& _for)
 	if (!m_resolveInsideCode)
 		return false;
 	m_experimental050Mode = _for.sourceUnit().annotation().experimentalFeatures.count(ExperimentalFeature::V050);
-	// C99-scoped variables
-	if (m_experimental050Mode)
-		m_resolver.setScope(&_for);
+	m_resolver.setScope(&_for);
 	return true;
 }
 
@@ -79,18 +73,16 @@ void ReferencesResolver::endVisit(ForStatement const& _for)
 {
 	if (!m_resolveInsideCode)
 		return;
-	if (m_experimental050Mode)
-		m_resolver.setScope(_for.scope());
+	m_resolver.setScope(_for.scope());
 }
 
 void ReferencesResolver::endVisit(VariableDeclarationStatement const& _varDeclStatement)
 {
 	if (!m_resolveInsideCode)
 		return;
-	if (m_experimental050Mode)
-		for (auto const& var: _varDeclStatement.declarations())
-			if (var)
-				m_resolver.activateVariable(var->name());
+	for (auto const& var: _varDeclStatement.declarations())
+		if (var)
+			m_resolver.activateVariable(var->name());
 }
 
 bool ReferencesResolver::visit(Identifier const& _identifier)
@@ -99,9 +91,14 @@ bool ReferencesResolver::visit(Identifier const& _identifier)
 	if (declarations.empty())
 	{
 		string suggestions = m_resolver.similarNameSuggestions(_identifier.name());
-		string errorMessage =
-			"Undeclared identifier." +
-			(suggestions.empty()? "": " Did you mean " + std::move(suggestions) + "?");
+		string errorMessage = "Undeclared identifier.";
+		if (!suggestions.empty())
+		{
+			if ("\"" + _identifier.name() + "\"" == suggestions)
+				errorMessage += " " + std::move(suggestions) + " is not (or not yet) visible at this point.";
+			else
+				errorMessage += " Did you mean " + std::move(suggestions) + "?";
+		}
 		declarationError(_identifier.location(), errorMessage);
 	}
 	else if (declarations.size() == 1)
@@ -147,7 +144,7 @@ void ReferencesResolver::endVisit(UserDefinedTypeName const& _typeName)
 	Declaration const* declaration = m_resolver.pathFromCurrentScope(_typeName.namePath());
 	if (!declaration)
 	{
-		declarationError(_typeName.location(), "Identifier not found or not unique.");
+		fatalDeclarationError(_typeName.location(), "Identifier not found or not unique.");
 		return;
 	}
 
@@ -380,19 +377,10 @@ void ReferencesResolver::endVisit(VariableDeclaration const& _variable)
 					{
 						typeLoc = DataLocation::Storage;
 						if (_variable.isLocalVariable())
-						{
-							if (_variable.sourceUnit().annotation().experimentalFeatures.count(ExperimentalFeature::V050))
-								typeError(
-									_variable.location(),
-									"Data location must be specified as either \"memory\" or \"storage\"."
-								);
-							else
-								m_errorReporter.warning(
-									_variable.location(),
-									"Variable is declared as a storage pointer. "
-									"Use an explicit \"storage\" keyword to silence this warning."
-								);
-						}
+							typeError(
+								_variable.location(),
+								"Data location must be specified as either \"memory\" or \"storage\"."
+							);
 					}
 				}
 				else
@@ -416,8 +404,15 @@ void ReferencesResolver::endVisit(VariableDeclaration const& _variable)
 				}
 				isPointer = !_variable.isStateVariable();
 			}
-
 			type = ref->copyForLocation(typeLoc, isPointer);
+		}
+		else if (dynamic_cast<MappingType const*>(type.get()))
+		{
+			if (_variable.isLocalVariable() && varLoc != Location::Storage)
+				typeError(
+					_variable.location(),
+					"Data location for mappings must be specified as \"storage\"."
+				);
 		}
 		else if (varLoc != Location::Default && !ref)
 			typeError(_variable.location(), "Data location can only be given for array or struct types.");

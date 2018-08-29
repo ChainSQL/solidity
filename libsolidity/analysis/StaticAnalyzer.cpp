@@ -51,16 +51,6 @@ void StaticAnalyzer::endVisit(ContractDefinition const&)
 
 bool StaticAnalyzer::visit(FunctionDefinition const& _function)
 {
-	const bool isInterface = m_currentContract->contractKind() == ContractDefinition::ContractKind::Interface;
-
-	if (_function.noVisibilitySpecified())
-		m_errorReporter.warning(
-			_function.location(),
-			"No visibility specified. Defaulting to \"" +
-			Declaration::visibilityToString(_function.visibility()) +
-			"\". " +
-			(isInterface ? "In interfaces it defaults to external." : "")
-		);
 	if (_function.isImplemented())
 		m_currentFunction = &_function;
 	else
@@ -150,36 +140,18 @@ bool StaticAnalyzer::visit(ExpressionStatement const& _statement)
 
 bool StaticAnalyzer::visit(MemberAccess const& _memberAccess)
 {
-	bool const v050 = m_currentContract->sourceUnit().annotation().experimentalFeatures.count(ExperimentalFeature::V050);
-
 	if (MagicType const* type = dynamic_cast<MagicType const*>(_memberAccess.expression().annotation().type.get()))
 	{
 		if (type->kind() == MagicType::Kind::Message && _memberAccess.memberName() == "gas")
-		{
-			if (v050)
-				m_errorReporter.typeError(
-					_memberAccess.location(),
-					"\"msg.gas\" has been deprecated in favor of \"gasleft()\""
-				);
-			else
-				m_errorReporter.warning(
-					_memberAccess.location(),
-					"\"msg.gas\" has been deprecated in favor of \"gasleft()\""
-				);
-		}
-		if (type->kind() == MagicType::Kind::Block && _memberAccess.memberName() == "blockhash")
-		{
-			if (v050)
-				m_errorReporter.typeError(
-					_memberAccess.location(),
-					"\"block.blockhash()\" has been deprecated in favor of \"blockhash()\""
-				);
-			else
-				m_errorReporter.warning(
-					_memberAccess.location(),
-					"\"block.blockhash()\" has been deprecated in favor of \"blockhash()\""
-				);
-		}
+			m_errorReporter.typeError(
+				_memberAccess.location(),
+				"\"msg.gas\" has been deprecated in favor of \"gasleft()\""
+			);
+		else if (type->kind() == MagicType::Kind::Block && _memberAccess.memberName() == "blockhash")
+			m_errorReporter.typeError(
+				_memberAccess.location(),
+				"\"block.blockhash()\" has been deprecated in favor of \"blockhash()\""
+			);
 	}
 
 	if (m_nonPayablePublic && !m_library)
@@ -193,18 +165,10 @@ bool StaticAnalyzer::visit(MemberAccess const& _memberAccess)
 	if (_memberAccess.memberName() == "callcode")
 		if (auto const* type = dynamic_cast<FunctionType const*>(_memberAccess.annotation().type.get()))
 			if (type->kind() == FunctionType::Kind::BareCallCode)
-			{
-				if (v050)
-					m_errorReporter.typeError(
-						_memberAccess.location(),
-						"\"callcode\" has been deprecated in favour of \"delegatecall\"."
-					);
-				else
-					m_errorReporter.warning(
-						_memberAccess.location(),
-						"\"callcode\" has been deprecated in favour of \"delegatecall\"."
-					);
-			}
+				m_errorReporter.typeError(
+					_memberAccess.location(),
+					"\"callcode\" has been deprecated in favour of \"delegatecall\"."
+				);
 
 	if (m_constructor)
 	{

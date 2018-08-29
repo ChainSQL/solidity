@@ -17,13 +17,7 @@
 
 #include <libsolidity/formal/SMTChecker.h>
 
-#ifdef HAVE_Z3
-#include <libsolidity/formal/Z3Interface.h>
-#elif HAVE_CVC4
-#include <libsolidity/formal/CVC4Interface.h>
-#else
-#include <libsolidity/formal/SMTLib2Interface.h>
-#endif
+#include <libsolidity/formal/SMTPortfolio.h>
 
 #include <libsolidity/formal/SSAVariable.h>
 #include <libsolidity/formal/SymbolicIntVariable.h>
@@ -39,16 +33,9 @@ using namespace dev;
 using namespace dev::solidity;
 
 SMTChecker::SMTChecker(ErrorReporter& _errorReporter, ReadCallback::Callback const& _readFileCallback):
-#ifdef HAVE_Z3
-	m_interface(make_shared<smt::Z3Interface>()),
-#elif HAVE_CVC4
-	m_interface(make_shared<smt::CVC4Interface>()),
-#else
-	m_interface(make_shared<smt::SMTLib2Interface>(_readFileCallback)),
-#endif
+	m_interface(make_shared<smt::SMTPortfolio>(_readFileCallback)),
 	m_errorReporter(_errorReporter)
 {
-	(void)_readFileCallback;
 }
 
 void SMTChecker::analyze(SourceUnit const& _source)
@@ -95,7 +82,7 @@ bool SMTChecker::visit(FunctionDefinition const& _function)
 
 void SMTChecker::endVisit(FunctionDefinition const&)
 {
-	// TOOD we could check for "reachability", i.e. satisfiability here.
+	// TODO we could check for "reachability", i.e. satisfiability here.
 	// We only handle local variables, so we clear at the beginning of the function.
 	// If we add storage variables, those should be cleared differently.
 	removeLocalVariables();
@@ -429,7 +416,14 @@ void SMTChecker::arithmeticOperation(BinaryOperation const& _op)
 	case Token::Div:
 	{
 		solAssert(_op.annotation().commonType, "");
-		solAssert(_op.annotation().commonType->category() == Type::Category::Integer, "");
+		if (_op.annotation().commonType->category() != Type::Category::Integer)
+		{
+			m_errorReporter.warning(
+				_op.location(),
+				"Assertion checker does not yet implement this operator on non-integer types."
+			);
+			break;
+		}
 		auto const& intType = dynamic_cast<IntegerType const&>(*_op.annotation().commonType);
 		smt::Expression left(expr(_op.leftExpression()));
 		smt::Expression right(expr(_op.rightExpression()));
@@ -623,6 +617,9 @@ void SMTChecker::checkCondition(
 	case smt::CheckResult::UNKNOWN:
 		m_errorReporter.warning(_location, _description + " might happen here." + loopComment);
 		break;
+	case smt::CheckResult::CONFLICTING:
+		m_errorReporter.warning(_location, "At least two SMT solvers provided conflicting answers. Results might not be sound.");
+		break;
 	case smt::CheckResult::ERROR:
 		m_errorReporter.warning(_location, "Error trying to invoke SMT solver.");
 		break;
@@ -650,6 +647,8 @@ void SMTChecker::checkBooleanNotConstant(Expression const& _condition, string co
 
 	if (positiveResult == smt::CheckResult::ERROR || negatedResult == smt::CheckResult::ERROR)
 		m_errorReporter.warning(_condition.location(), "Error trying to invoke SMT solver.");
+	else if (positiveResult == smt::CheckResult::CONFLICTING || negatedResult == smt::CheckResult::CONFLICTING)
+		m_errorReporter.warning(_condition.location(), "At least two SMT solvers provided conflicting answers. Results might not be sound.");
 	else if (positiveResult == smt::CheckResult::SATISFIABLE && negatedResult == smt::CheckResult::SATISFIABLE)
 	{
 		// everything fine.
@@ -752,6 +751,7 @@ void SMTChecker::mergeVariables(vector<VariableDeclaration const*> const& _varia
 	set<VariableDeclaration const*> uniqueVars(_variables.begin(), _variables.end());
 	for (auto const* decl: uniqueVars)
 	{
+		solAssert(_countersEndTrue.count(decl) && _countersEndFalse.count(decl), "");
 		int trueCounter = _countersEndTrue.at(decl).index();
 		int falseCounter = _countersEndFalse.at(decl).index();
 		solAssert(trueCounter != falseCounter, "");

@@ -20,9 +20,9 @@ contract DelayedClaimable is Claimable {
    * @param _start The earliest time ownership can be claimed.
    * @param _end The latest time ownership can be claimed. 
    */
-  function setLimits(uint256 _start, uint256 _end) onlyOwner {
+  function setLimits(uint256 _start, uint256 _end) public onlyOwner {
     if (_start > _end)
-        throw;
+        revert();
     end = _end;
     start = _start;
   }
@@ -32,11 +32,11 @@ contract DelayedClaimable is Claimable {
    * @dev Allows the pendingOwner address to finalize the transfer, as long as it is called within 
    * the specified start and end time. 
    */
-  function claimOwnership() onlyPendingOwner {
+  function claimOwnership() public onlyPendingOwner {
     if ((block.number > end) || (block.number < start))
-        throw;
+        revert();
     owner = pendingOwner;
-    pendingOwner = 0x0;
+    pendingOwner = address(0x0);
     end = 0;
   }
 

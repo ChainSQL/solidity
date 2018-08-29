@@ -39,7 +39,7 @@ write::
     pragma solidity ^0.4.16;
 
     contract Simple {
-        function arithmetics(uint _a, uint _b)
+        function arithmetic(uint _a, uint _b)
             public
             pure
             returns (uint o_sum, uint o_product)
@@ -225,11 +225,11 @@ creation-dependencies are not possible.
 
 ::
 
-    pragma solidity ^0.4.0;
+    pragma solidity >0.4.24;
 
     contract D {
         uint x;
-        function D(uint a) public payable {
+        constructor(uint a) public payable {
             x = a;
         }
     }
@@ -293,18 +293,13 @@ These can then either be assigned to newly declared variables or to pre-existing
             (x, y) = (y, x);
             // Components can be left out (also for variable declarations).
             (data.length,,) = f(); // Sets the length to 7
-            // Components can only be left out at the left-hand-side of assignments, with
-            // one exception:
-            (x,) = (1,);
-            // (1,) is the only way to specify a 1-component tuple, because (1) is
-            // equivalent to 1.
         }
     }
 
 .. note::
-    Prior to version 0.4.24 it was possible to assign to tuples of smaller size, either
+    Prior to version 0.5.0 it was possible to assign to tuples of smaller size, either
     filling up on the left or on the right side (which ever was empty). This is
-    now deprecated, both sides have to have the same number of components.
+    now disallowed, so both sides have to have the same number of components.
 
 Complications for Arrays and Structs
 ------------------------------------
@@ -325,74 +320,7 @@ is ``false``. The default value for the ``uint`` or ``int`` types is ``0``. For 
 element will be initialized to the default value corresponding to its type. Finally, for dynamically-sized arrays, ``bytes``
 and ``string``, the default value is an empty array or string.
 
-A variable declared anywhere within a function will be in scope for the *entire function*, regardless of where it is declared
-(this will change soon, see below).
-This happens because Solidity inherits its scoping rules from JavaScript.
-This is in contrast to many languages where variables are only scoped where they are declared until the end of the semantic block.
-As a result, the following code is illegal and cause the compiler to throw an error, ``Identifier already declared``:
-
-::
-
-    // This will not compile
-
-    pragma solidity ^0.4.16;
-
-    contract ScopingErrors {
-        function scoping() public {
-            uint i = 0;
-
-            while (i++ < 1) {
-                uint same1 = 0;
-            }
-
-            while (i++ < 2) {
-                uint same1 = 0;// Illegal, second declaration of same1
-            }
-        }
-
-        function minimalScoping() public {
-            {
-                uint same2 = 0;
-            }
-
-            {
-                uint same2 = 0;// Illegal, second declaration of same2
-            }
-        }
-
-        function forLoopScoping() public {
-            for (uint same3 = 0; same3 < 1; same3++) {
-            }
-
-            for (uint same3 = 0; same3 < 1; same3++) {// Illegal, second declaration of same3
-            }
-        }
-    }
-
-In addition to this, if a variable is declared, it will be initialized at the beginning of the function to its default value.
-As a result, the following code is legal, despite being poorly written:
-
-::
-
-    pragma solidity ^0.4.0;
-
-    contract C {
-        function foo() public pure returns (uint) {
-            // baz is implicitly initialized as 0
-            uint bar = 5;
-            if (true) {
-                bar += baz;
-            } else {
-                uint baz = 10;// never executes
-            }
-            return bar;// returns 5
-        }
-    }
-
-Scoping starting from Version 0.5.0
------------------------------------
-
-Starting from version 0.5.0, Solidity will change to the more widespread scoping rules of C99
+Scoping in Solidity follows the widespread scoping rules of C99
 (and many other languages): Variables are visible from the point right after their declaration
 until the end of a ``{ }``-block. As an exception to this rule, variables declared in the
 initialization part of a for-loop are only visible until the end of the for-loop.
@@ -401,17 +329,12 @@ Variables and other items declared outside of a code block, for example function
 user-defined types, etc., do not change their scoping behaviour. This means you can
 use state variables before they are declared and call functions recursively.
 
-These rules are already introduced now as an experimental feature.
-
 As a consequence, the following examples will compile without warnings, since
-the two variables have the same name but disjoint scopes. In non-0.5.0-mode,
-they have the same scope (the function ``minimalScoping``) and thus it does
-not compile there.
+the two variables have the same name but disjoint scopes.
 
 ::
 
-    pragma solidity ^0.4.0;
-    pragma experimental "v0.5.0";
+    pragma solidity >0.4.24;
     contract C {
         function minimalScoping() pure public {
             {
@@ -430,8 +353,7 @@ In any case, you will get a warning about the outer variable being shadowed.
 
 ::
 
-    pragma solidity ^0.4.0;
-    pragma experimental "v0.5.0";
+    pragma solidity >0.4.24;
     contract C {
         function f() pure public returns (uint) {
             uint x = 1;
@@ -440,6 +362,24 @@ In any case, you will get a warning about the outer variable being shadowed.
                 uint x;
             }
             return x; // x has value 2
+        }
+    }
+
+.. warning::
+    Before version 0.5.0 Solidity followed the same scoping rules as JavaScript, that is, a variable declared anywhere within a function would be in scope
+    for the entire function, regardless where it was declared. Note that this is a breaking change. The following example shows a code snippet that used
+    to compile but leads to an error starting from version 0.5.0.
+
+ ::
+
+    // This will not compile
+
+    pragma solidity >0.4.24;
+    contract C {
+        function f() pure public returns (uint) {
+            x = 2;
+            uint x;
+            return x;
         }
     }
 
@@ -478,18 +418,18 @@ a message string for ``require``, but not for ``assert``.
 
 ::
 
-    pragma solidity ^0.4.22;
+    pragma solidity >0.4.24;
 
     contract Sharer {
         function sendHalf(address addr) public payable returns (uint balance) {
             require(msg.value % 2 == 0, "Even value required.");
-            uint balanceBeforeTransfer = this.balance;
+            uint balanceBeforeTransfer = address(this).balance;
             addr.transfer(msg.value / 2);
             // Since transfer throws an exception on failure and
             // cannot call back here, there should be no way for us to
             // still have half of the money.
-            assert(this.balance == balanceBeforeTransfer - msg.value / 2);
-            return this.balance;
+            assert(address(this).balance == balanceBeforeTransfer - msg.value / 2);
+            return address(this).balance;
         }
     }
 
@@ -525,10 +465,10 @@ The following example shows how an error string can be used together with revert
 
 ::
 
-    pragma solidity ^0.4.22;
+    pragma solidity >0.4.24;
 
     contract VendingMachine {
-        function buy(uint amount) payable {
+        function buy(uint amount) public payable {
             if (amount > msg.value / 2 ether)
                 revert("Not enough Ether provided.");
             // Alternative way to do it:

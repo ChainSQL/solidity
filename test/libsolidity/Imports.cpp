@@ -109,7 +109,7 @@ BOOST_AUTO_TEST_CASE(simple_alias)
 {
 	CompilerStack c;
 	c.addSource("a", "contract A {} pragma solidity >=0.0;");
-	c.addSource("dir/a/b/c", "import \"../../.././a\" as x; contract B is x.A { function() { x.A r = x.A(20); } } pragma solidity >=0.0;");
+	c.addSource("dir/a/b/c", "import \"../../.././a\" as x; contract B is x.A { function() external { x.A r = x.A(20); } } pragma solidity >=0.0;");
 	c.setEVMVersion(dev::test::Options::get().evmVersion());
 	BOOST_CHECK(c.compile());
 }
@@ -138,7 +138,7 @@ BOOST_AUTO_TEST_CASE(complex_import)
 	CompilerStack c;
 	c.addSource("a", "contract A {} contract B {} contract C { struct S { uint a; } } pragma solidity >=0.0;");
 	c.addSource("b", "import \"a\" as x; import {B as b, C as c, C} from \"a\"; "
-				"contract D is b { function f(c.S var1, x.C.S var2, C.S var3) internal {} } pragma solidity >=0.0;");
+				"contract D is b { function f(c.S memory var1, x.C.S memory var2, C.S memory var3) internal {} } pragma solidity >=0.0;");
 	c.setEVMVersion(dev::test::Options::get().evmVersion());
 	BOOST_CHECK(c.compile());
 }

@@ -12,7 +12,7 @@ contract multiOwner is safeMath {
     /*
         Constructor
     */
-    function multiOwner(address[] newOwners) {
+    constructor(address[] memory newOwners) public {
         for ( uint256 a=0 ; a<newOwners.length ; a++ ) {
             _addOwner(newOwners[a]);
         }
@@ -21,12 +21,12 @@ contract multiOwner is safeMath {
         Externals
     */
     function insertOwner(address addr) external {
-        if ( insertAndCheckDo(calcDoHash("insertOwner", keccak256(addr))) ) {
+        if ( insertAndCheckDo(calcDoHash("insertOwner", keccak256(abi.encodePacked(addr)))) ) {
             _addOwner(addr);
         }
     }
     function dropOwner(address addr) external {
-        if ( insertAndCheckDo(calcDoHash("dropOwner", keccak256(addr))) ) {
+        if ( insertAndCheckDo(calcDoHash("dropOwner", keccak256(abi.encodePacked(addr)))) ) {
             _delOwner(addr);
         }
     }
@@ -38,13 +38,13 @@ contract multiOwner is safeMath {
     /*
         Constants
     */
-    function ownersForChange() public constant returns (uint256 owners) {
+    function ownersForChange() public view returns (uint256 owners) {
         return ownerCount * 75 / 100;
     }
-    function calcDoHash(string job, bytes32 data) public constant returns (bytes32 hash) {
-        return keccak256(job, data);
+    function calcDoHash(string memory job, bytes32 data) public pure returns (bytes32 hash) {
+        return keccak256(abi.encodePacked(job, data));
     }
-    function validDoHash(bytes32 doHash) public constant returns (bool valid) {
+    function validDoHash(bytes32 doHash) public view returns (bool valid) {
         return doDB[doHash].length > 0;
     }
     /*

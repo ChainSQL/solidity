@@ -86,7 +86,7 @@ as it uses ``call`` which forwards all remaining gas by default:
         mapping(address => uint) shares;
         /// Withdraw your share.
         function withdraw() public {
-            if (msg.sender.call.value(shares[msg.sender])())
+            if (msg.sender.call.value(shares[msg.sender])(""))
                 shares[msg.sender] = 0;
         }
     }
@@ -103,7 +103,7 @@ outlined further below:
         mapping(address => uint) shares;
         /// Withdraw your share.
         function withdraw() public {
-            var share = shares[msg.sender];
+            uint share = shares[msg.sender];
             shares[msg.sender] = 0;
             msg.sender.transfer(share);
         }
@@ -140,7 +140,7 @@ Sending and Receiving Ether
   (for example in the "details" section in Remix).
 
 - There is a way to forward more gas to the receiving contract using
-  ``addr.call.value(x)()``. This is essentially the same as ``addr.transfer(x)``,
+  ``addr.call.value(x)("")``. This is essentially the same as ``addr.transfer(x)``,
   only that it forwards all remaining gas and opens up the ability for the
   recipient to perform more expensive actions (and it only returns a failure code
   and does not automatically propagate the error). This might include calling back
@@ -180,13 +180,13 @@ Never use tx.origin for authorization. Let's say you have a wallet contract like
 
 ::
 
-    pragma solidity ^0.4.11;
+    pragma solidity >0.4.24;
 
     // THIS CONTRACT CONTAINS A BUG - DO NOT USE
     contract TxUserWallet {
         address owner;
 
-        function TxUserWallet() public {
+        constructor() public {
             owner = msg.sender;
         }
 
@@ -200,20 +200,20 @@ Now someone tricks you into sending ether to the address of this attack wallet:
 
 ::
 
-    pragma solidity ^0.4.11;
+    pragma solidity >0.4.24;
 
     interface TxUserWallet {
-        function transferTo(address dest, uint amount) public;
+        function transferTo(address dest, uint amount) external;
     }
 
     contract TxAttackWallet {
         address owner;
 
-        function TxAttackWallet() public {
+        constructor() public {
             owner = msg.sender;
         }
 
-        function() public {
+        function() external {
             TxUserWallet(msg.sender).transferTo(owner, msg.sender.balance);
         }
     }
@@ -224,7 +224,6 @@ If your wallet had checked ``msg.sender`` for authorization, it would get the ad
 Minor Details
 =============
 
-- In ``for (var i = 0; i < arrayName.length; i++) { ... }``, the type of ``i`` will be ``uint8``, because this is the smallest type that is required to hold the value ``0``. If the array has more than 255 elements, the loop will not terminate.
 - Types that do not occupy the full 32 bytes might contain "dirty higher order bits".
   This is especially important if you access ``msg.data`` - it poses a malleability risk:
   You can craft transactions that call a function ``f(uint8 x)`` with a raw byte argument
