@@ -447,7 +447,7 @@ bool CommandLineInterface::readInputFilesAndConfigureRemappings()
 		m_sourceCodes[g_stdinFileName] = dev::readStandardInput();
 	if (m_sourceCodes.size() == 0)
 	{
-		cerr << "No input files given. If you wish to use the standard input please specify \"-\" explicity." << endl;
+		cerr << "No input files given. If you wish to use the standard input please specify \"-\" explicitly." << endl;
 		return false;
 	}
 
@@ -787,7 +787,7 @@ bool CommandLineInterface::processInput()
 		m_onlyAssemble = true;
 		using Input = AssemblyStack::Language;
 		using Machine = AssemblyStack::Machine;
-		Input inputLanguage = m_args.count(g_argYul) ? Input::JULIA : (m_args.count(g_argStrictAssembly) ? Input::StrictAssembly : Input::Assembly);
+		Input inputLanguage = m_args.count(g_argYul) ? Input::Yul : (m_args.count(g_argStrictAssembly) ? Input::StrictAssembly : Input::Assembly);
 		Machine targetMachine = Machine::EVM;
 		if (m_args.count(g_argMachine))
 		{
@@ -986,10 +986,15 @@ void CommandLineInterface::handleAst(string const& _argStr)
 		map<ASTNode const*, eth::GasMeter::GasConsumption> gasCosts;
 		// FIXME: shouldn't this be done for every contract?
 		if (m_compiler->runtimeAssemblyItems(m_compiler->lastContractName()))
-			gasCosts = GasEstimator::breakToStatementLevel(
+		{
+			//NOTE: keep the local variable `ret` to prevent a Heisenbug that could happen on certain mac os platform.
+			//See: https://github.com/ethereum/solidity/issues/3718 for details.
+			auto ret = GasEstimator::breakToStatementLevel(
 				GasEstimator(m_evmVersion).structuralEstimation(*m_compiler->runtimeAssemblyItems(m_compiler->lastContractName()), asts),
 				asts
 			);
+			gasCosts = ret;
+		}
 
 		bool legacyFormat = !m_args.count(g_argAstCompactJson);
 		if (m_args.count(g_argOutputDir))
