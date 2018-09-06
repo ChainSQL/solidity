@@ -144,7 +144,7 @@ public:
 		Integer, RationalNumber, StringLiteral, Bool, FixedPoint, Array,
 		FixedBytes, Contract, Struct, Function, Enum, Tuple,
 		Mapping, TypeType, Modifier, Magic, Module,
-		InaccessibleDynamic, Create
+		InaccessibleDynamic
 	};
 
 	/// @{
@@ -922,7 +922,15 @@ public:
 		ABIEncodeWithSelector,
 		ABIEncodeWithSignature,
 		GasLeft, ///< gasleft()
-        Create
+        CreateSQL, // create a table
+        DropSQL,
+        RenameSQL,
+        InsertSQL,
+        DeleteSQL,
+        UpdateSQL,
+        BeginTrans,
+        CommitTrans,
+        GrantSQL
 	};
 
 	virtual Category category() const override { return Category::Function; }

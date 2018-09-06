@@ -444,6 +444,69 @@ bool ExpressionCompiler::visit(BinaryOperation const& _binaryOperation)
 	return false;
 }
 
+void ExpressionCompiler::prepareSQLCallMemParams(
+        std::vector<ASTPointer<Expression const>> const& _arguments, 
+        TypePointers _parameters) {
+    unsigned argNum = 0;
+    auto param = _parameters.begin();
+    std::vector<unsigned> argPos;
+    for (const auto arg : _arguments) {
+        TypePointer const &argType = arg->annotation().type;
+        solAssert(argType, "");
+        arg->accept(*this);
+
+        if (*argType==ArrayType(DataLocation::Memory) || 
+                *argType==ArrayType(DataLocation::Memory, true)) {
+            ArrayUtils(m_context).retrieveLength(
+                    ArrayType(DataLocation::Memory));
+            m_context << Instruction::SWAP1 
+                << u256(0x20) << Instruction::ADD;
+        } else {
+            utils().fetchFreeMemoryPointer();
+            if (argNum > 0) {
+                m_context << Instruction::DUP2 << Instruction::ADD;
+            }
+            utils().packedEncode({argType}, {*param});
+            utils().toSizeAfterFreeMemoryPointer();
+            ++argNum;
+            ++param;
+        }
+        argPos.push_back(m_context.currentToBaseStackOffset(1));
+    }
+
+    for (auto pos=argPos.rbegin(); pos!=argPos.rend(); ++pos) {
+        solAssert(*pos>1, "");
+        m_context << dupInstruction(
+                m_context.currentToBaseStackOffset(*pos-1));
+        m_context << dupInstruction(
+                m_context.currentToBaseStackOffset(*pos));
+    }
+}
+
+unsigned ExpressionCompiler::prepareSQLCallParams(
+        FunctionCall const& _functionCall, 
+        std::vector<ASTPointer<Expression const>> const& _arguments, 
+        TypePointers _parameters) {
+    solAssert(_arguments.size()==_parameters.size(), 
+            "argument'size doesn't math parameter");
+
+    _functionCall.expression().accept(*this);
+    unsigned contractPos = m_context.currentToBaseStackOffset(1);
+
+    prepareSQLCallMemParams(_arguments, _parameters);
+
+    m_context << dupInstruction(
+            m_context.currentToBaseStackOffset(contractPos));
+
+    return contractPos;
+}
+
+void ExpressionCompiler::clearSQLCallParams(unsigned offset) {
+    unsigned distance = m_context.currentToBaseStackOffset(offset);
+    m_context << swapInstruction(distance-1);
+    utils().popStackSlots(distance-1);
+}
+
 bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
 {
 	CompilerContext::LocationSetter locationSetter(m_context, _functionCall);
@@ -1074,45 +1137,70 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
 		case FunctionType::Kind::GasLeft:
 			m_context << Instruction::GAS;
 			break;
-        case FunctionType::Kind::Create:
-        {
+        case FunctionType::Kind::CreateSQL:
+        case FunctionType::Kind::RenameSQL:
+        case FunctionType::Kind::InsertSQL:
+        case FunctionType::Kind::DeleteSQL:
+        case FunctionType::Kind::DropSQL:    
+        case FunctionType::Kind::UpdateSQL: {
 			solAssert(!function.padArguments(), "");
-			solAssert(arguments.size() == 2, "");
+
+            unsigned clearPos = prepareSQLCallParams(_functionCall, 
+                    arguments, parameterTypes);
+
+            if (FunctionType::Kind::CreateSQL == function.kind()) {
+                m_context << Instruction::CREATETABLE;
+            } else if (FunctionType::Kind::RenameSQL == function.kind()) {
+                m_context << Instruction::EXRENAMETABLE;
+            } else if (FunctionType::Kind::InsertSQL == function.kind()) {
+                m_context << Instruction::EXINSERTSQL;
+            } else if (FunctionType::Kind::DeleteSQL == function.kind()) {
+                m_context << Instruction::EXDELETESQL;
+            } else if (FunctionType::Kind::DropSQL == function.kind()) {
+                m_context << Instruction::EXDROPTABLE;
+            } else if (FunctionType::Kind::UpdateSQL == function.kind()) {
+                m_context << Instruction::EXUPDATESQL;
+            }
+
+            clearSQLCallParams(clearPos);
+
+			break;
+        }
+        case FunctionType::Kind::GrantSQL: {
+            solAssert(arguments.size()==3, 
+                    "argument's size doesn't math parameter");
 
             _functionCall.expression().accept(*this);
             unsigned contractPos = m_context.currentToBaseStackOffset(1);
 
-            unsigned argNum = 0;
-            for (auto arg=arguments.rbegin(); arg!=arguments.rend(); ++arg) {
-                TypePointer const &argType = (*arg)->annotation().type;
-                solAssert(argType, "");
-                (*arg)->accept(*this);
+            /** argument: grant to who(address) */
+            auto const &argType = arguments.front()->annotation().type;
+            solAssert(argType, "");
+            arguments.front()->accept(*this);
 
-                if (*argType==ArrayType(DataLocation::Memory) || 
-                        *argType==ArrayType(DataLocation::Memory, true)) {
-                    ArrayUtils(m_context).retrieveLength(
-                            ArrayType(DataLocation::Memory));
-                    m_context << Instruction::SWAP1 
-                              << u256(0x20) << Instruction::ADD;
-                } else {
-                    utils().fetchFreeMemoryPointer();
-                    if (argNum > 0) {
-                        m_context << Instruction::DUP2 << Instruction::ADD;
-                    }
-                    utils().packedEncode({argType}, TypePointers());
-                    utils().toSizeAfterFreeMemoryPointer();
-                    ++argNum;
-                }
-            }
+            std::vector<ASTPointer<Expression const>> memArguments(
+                    arguments.begin()+1, arguments.end());
+            TypePointers params(parameterTypes.begin()+1, parameterTypes.end());
+            prepareSQLCallMemParams(memArguments, params);
+
+            m_context << dupInstruction(
+                    m_context.currentToBaseStackOffset(contractPos+1));
             m_context << dupInstruction(
                     m_context.currentToBaseStackOffset(contractPos));
-            /**
-             * stack: <address><name_addr><name_len><stmt_addr><stmt_len>
-             */
-		    m_context << Instruction::CREATETABLE;
-            m_context << Instruction::ISZERO;
-            m_context.appendConditionalRevert(true);
-			break;
+
+            m_context << Instruction::EXGRANTSQL;
+
+            clearSQLCallParams(contractPos);
+
+            break;                                   
+        }
+        case FunctionType::Kind::BeginTrans: {
+            m_context << Instruction::EXTRANSBEGIN;
+            break;
+        }
+        case FunctionType::Kind::CommitTrans: {
+            m_context << Instruction::EXTRANSCOMMIT;
+            break;
         }
 		default:
 			solAssert(false, "Invalid function type.");
@@ -1193,7 +1281,12 @@ bool ExpressionCompiler::visit(MemberAccess const& _memberAccess)
 				case FunctionType::Kind::BareCallCode:
 				case FunctionType::Kind::BareDelegateCall:
 				case FunctionType::Kind::Transfer:
-                case FunctionType::Kind::Create:
+                case FunctionType::Kind::CreateSQL:
+                case FunctionType::Kind::DropSQL:
+                case FunctionType::Kind::RenameSQL:
+                case FunctionType::Kind::InsertSQL:
+                case FunctionType::Kind::DeleteSQL:
+                case FunctionType::Kind::UpdateSQL:
 					_memberAccess.expression().accept(*this);
 					m_context << funType->externalIdentifier();
 					break;
@@ -1294,12 +1387,15 @@ bool ExpressionCompiler::visit(MemberAccess const& _memberAccess)
 			);
 			m_context << Instruction::BALANCE;
 		}
-		else if ((set<string>{"send", "transfer", "call", "callcode", "delegatecall", "create"}).count(member))
+		else if ((set<string>{"send", "transfer", "call", "callcode", 
+                    "delegatecall", "create", "drop", "rename", "insert", 
+                    "deletex", "update", "grant"}).count(member)) {
 			utils().convertType(
 				*_memberAccess.expression().annotation().type,
 				IntegerType(160, IntegerType::Modifier::Address),
 				true
 			);
+        }
 		else
 			solAssert(false, "Invalid member access to integer");
 		break;

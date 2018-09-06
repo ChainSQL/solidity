@@ -608,7 +608,13 @@ MemberList::MemberMap IntegerType::nativeMembers(ContractDefinition const*) cons
 			{"delegatecall", make_shared<FunctionType>(strings{"bytes memory"}, strings{"bool"}, FunctionType::Kind::BareDelegateCall, false)},
 			{"send", make_shared<FunctionType>(strings{"uint"}, strings{"bool"}, FunctionType::Kind::Send)},
 			{"transfer", make_shared<FunctionType>(strings{"uint"}, strings(), FunctionType::Kind::Transfer)},
-			{"create", make_shared<FunctionType>(strings{"string memory", "string memory"}, strings{"bool"}, FunctionType::Kind::Create)}
+			{"create", make_shared<FunctionType>(strings{"string memory", "string memory"}, strings{"bool"}, FunctionType::Kind::CreateSQL)},
+			{"drop", make_shared<FunctionType>(strings{"string memory"}, strings{"bool"}, FunctionType::Kind::DropSQL)},
+			{"rename", make_shared<FunctionType>(strings{"string memory", "string memory"}, strings{"bool"}, FunctionType::Kind::RenameSQL)},
+			{"insert", make_shared<FunctionType>(strings{"string memory", "string memory"}, strings{"bool"}, FunctionType::Kind::InsertSQL)},
+			{"deletex", make_shared<FunctionType>(strings{"string memory", "string memory"}, strings{"bool"}, FunctionType::Kind::DeleteSQL)},
+			{"update", make_shared<FunctionType>(strings{"string memory", "string memory", "string memory"}, strings{"bool"}, FunctionType::Kind::UpdateSQL)},
+			{"grant", make_shared<FunctionType>(strings{"address", "string memory", "string memory"}, strings{"bool"}, FunctionType::Kind::GrantSQL)}
 		};
 	else
 		return MemberList::MemberMap();
@@ -2511,6 +2517,7 @@ string FunctionType::richIdentifier() const
 	case Kind::ABIEncodePacked: id += "abiencodepacked"; break;
 	case Kind::ABIEncodeWithSelector: id += "abiencodewithselector"; break;
 	case Kind::ABIEncodeWithSignature: id += "abiencodewithsignature"; break;
+    case Kind::BeginTrans: id += "beginTrans"; break;
 	default: solAssert(false, "Unknown function location."); break;
 	}
 	id += "_" + stateMutabilityToString(m_stateMutability);
@@ -2975,7 +2982,13 @@ bool FunctionType::padArguments() const
 	case Kind::RIPEMD160:
 	case Kind::SHA3:
 	case Kind::ABIEncodePacked:
-    case Kind::Create:
+    case Kind::CreateSQL:
+    case Kind::DropSQL:
+    case Kind::RenameSQL:
+    case Kind::InsertSQL:
+    case Kind::DeleteSQL:
+    case Kind::UpdateSQL:
+    case Kind::GrantSQL:
 		return false;
 	default:
 		return true;

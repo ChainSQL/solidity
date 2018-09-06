@@ -187,7 +187,16 @@ enum class Instruction: uint8_t
 	PUTLOCAL,           ///< pop top of stack to local variable -- not part of Instructions.cpp
 	GETLOCAL,           ///< push local variable to top of stack -- not part of Instructions.cpp
 
-    CREATETABLE = 0xe0,
+    CREATETABLE = 0xe0,  // self-extention intructions
+    EXDROPTABLE,
+    EXRENAMETABLE,
+    EXINSERTSQL,
+    EXDELETESQL,
+    EXUPDATESQL,
+    EXSELECTSQL,
+    EXTRANSBEGIN,
+    EXTRANSCOMMIT,
+    EXGRANTSQL,
 
 	CREATE = 0xf0,		///< create a new account with associated code
 	CALL,				///< message-call into an account
