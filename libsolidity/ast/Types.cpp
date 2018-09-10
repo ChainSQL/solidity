@@ -614,6 +614,7 @@ MemberList::MemberMap IntegerType::nativeMembers(ContractDefinition const*) cons
 			{"insert", make_shared<FunctionType>(strings{"string memory", "string memory"}, strings{"bool"}, FunctionType::Kind::InsertSQL)},
 			{"deletex", make_shared<FunctionType>(strings{"string memory", "string memory"}, strings{"bool"}, FunctionType::Kind::DeleteSQL)},
 			{"update", make_shared<FunctionType>(strings{"string memory", "string memory", "string memory"}, strings{"bool"}, FunctionType::Kind::UpdateSQL)},
+			{"get", make_shared<FunctionType>(strings{"string memory", "string memory"}, strings{"uint256"}, FunctionType::Kind::GetSQL)},
 			{"grant", make_shared<FunctionType>(strings{"address", "string memory", "string memory"}, strings{"bool"}, FunctionType::Kind::GrantSQL)}
 		};
 	else
@@ -2989,6 +2990,7 @@ bool FunctionType::padArguments() const
     case Kind::DeleteSQL:
     case Kind::UpdateSQL:
     case Kind::GrantSQL:
+    case Kind::GetSQL:
 		return false;
 	default:
 		return true;
@@ -3171,6 +3173,8 @@ string MagicType::richIdentifier() const
 		return "t_magic_transaction";
 	case Kind::ABI:
 		return "t_magic_abi";
+    case Kind::Database:
+        return "t_magic_database";
 	default:
 		solAssert(false, "Unknown kind of magic");
 	}
@@ -3250,6 +3254,15 @@ MemberList::MemberMap MagicType::nativeMembers(ContractDefinition const*) const
 				StateMutability::Pure
 			)}
 		});
+	case Kind::Database:
+		return MemberList::MemberMap({
+            {"getRowSize", make_shared<FunctionType>(strings{"uint256"}, strings{"uint"}, FunctionType::Kind::GetRowSize, false, StateMutability::View)},
+            {"getColSize", make_shared<FunctionType>(strings{"uint256"}, strings{"uint"}, FunctionType::Kind::GetColSize, false, StateMutability::View)},
+            {"getValueByKey", make_shared<FunctionType>(strings{"uint256", "uint", "string memory"}, strings{"string"}, FunctionType::Kind::GetValueByKey, false, StateMutability::View)},
+            {"getValueByIndex", make_shared<FunctionType>(strings{"uint256", "uint", "uint"}, strings{"string"}, FunctionType::Kind::GetValueByIndex, false, StateMutability::View)},
+            {"beginTrans", make_shared<FunctionType>(strings{}, strings{}, FunctionType::Kind::BeginTrans)}, 
+            {"commit", make_shared<FunctionType>(strings{}, strings{"bool"}, FunctionType::Kind::CommitTrans)}
+		});
 	default:
 		solAssert(false, "Unknown kind of magic.");
 	}
@@ -3267,6 +3280,8 @@ string MagicType::toString(bool) const
 		return "tx";
 	case Kind::ABI:
 		return "abi";
+    case Kind::Database:
+        return "db";
 	default:
 		solAssert(false, "Unknown kind of magic.");
 	}

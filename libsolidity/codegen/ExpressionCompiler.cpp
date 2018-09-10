@@ -450,7 +450,7 @@ void ExpressionCompiler::prepareSQLCallMemParams(
     unsigned argNum = 0;
     auto param = _parameters.begin();
     std::vector<unsigned> argPos;
-    for (const auto arg : _arguments) {
+    for (const auto &arg : _arguments) {
         TypePointer const &argType = arg->annotation().type;
         solAssert(argType, "");
         arg->accept(*this);
@@ -1142,7 +1142,8 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
         case FunctionType::Kind::InsertSQL:
         case FunctionType::Kind::DeleteSQL:
         case FunctionType::Kind::DropSQL:    
-        case FunctionType::Kind::UpdateSQL: {
+        case FunctionType::Kind::UpdateSQL:
+        case FunctionType::Kind::GetSQL: {
 			solAssert(!function.padArguments(), "");
 
             unsigned clearPos = prepareSQLCallParams(_functionCall, 
@@ -1160,10 +1161,11 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
                 m_context << Instruction::EXDROPTABLE;
             } else if (FunctionType::Kind::UpdateSQL == function.kind()) {
                 m_context << Instruction::EXUPDATESQL;
+            } else if (FunctionType::Kind::GetSQL == function.kind()) {
+                m_context << Instruction::EXSELECTSQL;
             }
 
             clearSQLCallParams(clearPos);
-
 			break;
         }
         case FunctionType::Kind::GrantSQL: {
@@ -1187,11 +1189,9 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
                     m_context.currentToBaseStackOffset(contractPos+1));
             m_context << dupInstruction(
                     m_context.currentToBaseStackOffset(contractPos));
-
             m_context << Instruction::EXGRANTSQL;
 
             clearSQLCallParams(contractPos);
-
             break;                                   
         }
         case FunctionType::Kind::BeginTrans: {
@@ -1200,6 +1200,77 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
         }
         case FunctionType::Kind::CommitTrans: {
             m_context << Instruction::EXTRANSCOMMIT;
+            break;
+        }
+        case FunctionType::Kind::GetRowSize: 
+        case FunctionType::Kind::GetColSize: {
+            solAssert(arguments.size()==1, 
+                    "argument's size doesn't math parameter");
+			arguments[0]->accept(*this);
+            utils().convertType(*arguments[0]->annotation().type, 
+                    *function.parameterTypes()[0], true);
+
+            if (FunctionType::Kind::GetRowSize == function.kind()) {
+                m_context << Instruction::EXGETROWSIZE;
+            } else if (FunctionType::Kind::GetColSize == function.kind()) {
+                m_context << Instruction::EXGETCOLSIZE;
+            }
+
+            break;
+        }
+        case FunctionType::Kind::GetValueByKey: {
+            solAssert(arguments.size()==3, 
+                    "argument's size doesn't math parameter");
+
+            unsigned clearPos = m_context.currentToBaseStackOffset(0);
+
+            auto param = parameterTypes.begin();
+            auto arg = arguments.begin();
+            for ( ; arg!=arguments.begin()+2; ++arg, ++param) {
+                TypePointer const &argType = (*arg)->annotation().type;
+                solAssert(argType, "");
+                (*arg)->accept(*this);
+                utils().convertType(*argType, **param, true);
+            }
+            TypePointer const &argType = (*arg)->annotation().type;
+            if (*argType==ArrayType(DataLocation::Memory) || 
+                    *argType==ArrayType(DataLocation::Memory, true)) {
+                ArrayUtils(m_context).retrieveLength(
+                        ArrayType(DataLocation::Memory));
+                m_context << Instruction::SWAP1 
+                    << u256(0x20) << Instruction::ADD;
+            } else {
+                utils().fetchFreeMemoryPointer();
+                utils().packedEncode({argType}, {*param});
+                utils().toSizeAfterFreeMemoryPointer();
+            }
+
+            m_context << Instruction::DUP2 << Instruction::DUP2 
+                << Instruction::DUP5 << Instruction::DUP7;
+            m_context << Instruction::EXGETVALUEBYKEY;
+
+            clearSQLCallParams(clearPos);
+            break;
+        }
+        case FunctionType::Kind::GetValueByIndex: {
+            solAssert(arguments.size()==3, 
+                    "argument's size doesn't math parameter");
+
+            unsigned clearPos = m_context.currentToBaseStackOffset(0);
+
+            auto param = parameterTypes.begin();
+            for (auto arg=arguments.begin(); 
+                    arg!=arguments.end(); ++arg, ++param) {
+                TypePointer const &argType = (*arg)->annotation().type;
+                solAssert(argType, "");
+                (*arg)->accept(*this);
+                utils().convertType(*argType, **param, true);
+            }
+
+            m_context << Instruction::DUP1 << Instruction::DUP3 
+                << Instruction::DUP5 << Instruction::EXGETVALUEBYINDEX;
+
+            clearSQLCallParams(clearPos);
             break;
         }
 		default:
@@ -1389,7 +1460,7 @@ bool ExpressionCompiler::visit(MemberAccess const& _memberAccess)
 		}
 		else if ((set<string>{"send", "transfer", "call", "callcode", 
                     "delegatecall", "create", "drop", "rename", "insert", 
-                    "deletex", "update", "grant"}).count(member)) {
+                    "deletex", "update", "grant", "get"}).count(member)) {
 			utils().convertType(
 				*_memberAccess.expression().annotation().type,
 				IntegerType(160, IntegerType::Modifier::Address),

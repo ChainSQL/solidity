@@ -930,7 +930,12 @@ public:
         UpdateSQL,
         BeginTrans,
         CommitTrans,
-        GrantSQL
+        GrantSQL,
+        GetSQL,
+        GetRowSize,
+        GetColSize,
+        GetValueByKey,
+        GetValueByIndex
 	};
 
 	virtual Category category() const override { return Category::Function; }
@@ -1242,7 +1247,7 @@ private:
 class MagicType: public Type
 {
 public:
-	enum class Kind { Block, Message, Transaction, ABI };
+	enum class Kind { Block, Message, Transaction, ABI, Database };
 	virtual Category category() const override { return Category::Magic; }
 
 	explicit MagicType(Kind _kind): m_kind(_kind) {}

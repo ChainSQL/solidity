@@ -194,9 +194,14 @@ enum class Instruction: uint8_t
     EXDELETESQL,
     EXUPDATESQL,
     EXSELECTSQL,
+    EXGRANTSQL,
     EXTRANSBEGIN,
     EXTRANSCOMMIT,
-    EXGRANTSQL,
+    EXGETROWSIZE,
+    EXGETCOLSIZE,
+    EXGETVALUEBYKEY,
+    EXGETVALUEBYINDEX,
+    /** NOTE: maximum value is 0xef */
 
 	CREATE = 0xf0,		///< create a new account with associated code
 	CALL,				///< message-call into an account
