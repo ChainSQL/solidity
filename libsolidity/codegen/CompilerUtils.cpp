@@ -463,7 +463,7 @@ void CompilerUtils::encodeToMemory(
 	}
 
 	// remove unneeded stack elements (and retain memory pointer)
-	m_context << swapInstruction(argSize + dynPointers + 1);
+    m_context << swapInstruction(argSize + dynPointers + 1);
 	popStackSlots(argSize + dynPointers + 1);
 }
 

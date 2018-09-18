@@ -2518,7 +2518,20 @@ string FunctionType::richIdentifier() const
 	case Kind::ABIEncodePacked: id += "abiencodepacked"; break;
 	case Kind::ABIEncodeWithSelector: id += "abiencodewithselector"; break;
 	case Kind::ABIEncodeWithSignature: id += "abiencodewithsignature"; break;
+    case Kind::CreateSQL: id += "create"; break;
+    case Kind::DropSQL: id += "drop"; break;
+    case Kind::RenameSQL: id += "rename"; break;
+    case Kind::InsertSQL: id += "insert"; break;
+    case Kind::DeleteSQL: id += "deletex"; break;
+    case Kind::UpdateSQL: id += "update"; break;
+    case Kind::GetSQL: id += "get"; break;
+    case Kind::GrantSQL: id += "grant"; break;
+    case Kind::GetRowSize: id += "getRowSize"; break;
+    case Kind::GetColSize: id += "getColSize"; break;
+    case Kind::GetValueByKey: id += "getValueByKey"; break;
+    case Kind::GetValueByIndex: id += "getValueByIndex"; break;
     case Kind::BeginTrans: id += "beginTrans"; break;
+    case Kind::CommitTrans: id += "commit"; break;
 	default: solAssert(false, "Unknown function location."); break;
 	}
 	id += "_" + stateMutabilityToString(m_stateMutability);
@@ -3256,12 +3269,24 @@ MemberList::MemberMap MagicType::nativeMembers(ContractDefinition const*) const
 		});
 	case Kind::Database:
 		return MemberList::MemberMap({
-            {"getRowSize", make_shared<FunctionType>(strings{"uint256"}, strings{"uint"}, FunctionType::Kind::GetRowSize, false, StateMutability::View)},
-            {"getColSize", make_shared<FunctionType>(strings{"uint256"}, strings{"uint"}, FunctionType::Kind::GetColSize, false, StateMutability::View)},
-            {"getValueByKey", make_shared<FunctionType>(strings{"uint256", "uint", "string memory"}, strings{"string"}, FunctionType::Kind::GetValueByKey, false, StateMutability::View)},
-            {"getValueByIndex", make_shared<FunctionType>(strings{"uint256", "uint", "uint"}, strings{"string"}, FunctionType::Kind::GetValueByIndex, false, StateMutability::View)},
-            {"beginTrans", make_shared<FunctionType>(strings{}, strings{}, FunctionType::Kind::BeginTrans)}, 
-            {"commit", make_shared<FunctionType>(strings{}, strings{"bool"}, FunctionType::Kind::CommitTrans)}
+            {"getRowSize", make_shared<FunctionType>( strings{"uint256"}, 
+                    strings{"uint"}, FunctionType::Kind::GetRowSize, false, 
+                    StateMutability::View)},
+            {"getColSize", make_shared<FunctionType>(strings{"uint256"}, 
+                    strings{"uint"}, FunctionType::Kind::GetColSize, false, 
+                    StateMutability::View)},
+            {"getValueByKey", make_shared<FunctionType>(
+                    strings{"uint256", "uint", "string memory"}, 
+                    strings{"string"}, FunctionType::Kind::GetValueByKey, 
+                    false, StateMutability::View)},
+            {"getValueByIndex", make_shared<FunctionType>(
+                    strings{"uint256", "uint", "uint"}, strings{"string"}, 
+                    FunctionType::Kind::GetValueByIndex, false, 
+                    StateMutability::View)},
+            {"beginTrans", make_shared<FunctionType>(strings{}, strings{}, 
+                    FunctionType::Kind::BeginTrans)}, 
+            {"commit", make_shared<FunctionType>(strings{}, strings{"bool"}, 
+                    FunctionType::Kind::CommitTrans)}
 		});
 	default:
 		solAssert(false, "Unknown kind of magic.");

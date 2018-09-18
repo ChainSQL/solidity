@@ -447,9 +447,9 @@ bool ExpressionCompiler::visit(BinaryOperation const& _binaryOperation)
 void ExpressionCompiler::prepareSQLCallMemParams(
         std::vector<ASTPointer<Expression const>> const& _arguments, 
         TypePointers _parameters) {
-    unsigned argNum = 0;
     auto param = _parameters.begin();
     std::vector<unsigned> argPos;
+    unsigned count = 0;
     for (const auto &arg : _arguments) {
         TypePointer const &argType = arg->annotation().type;
         solAssert(argType, "");
@@ -462,13 +462,31 @@ void ExpressionCompiler::prepareSQLCallMemParams(
             m_context << Instruction::SWAP1 
                 << u256(0x20) << Instruction::ADD;
         } else {
-            utils().fetchFreeMemoryPointer();
-            if (argNum > 0) {
-                m_context << Instruction::DUP2 << Instruction::ADD;
+            // get next storage location
+            if (count == 0) {
+                utils().fetchFreeMemoryPointer();
+            } else {
+                m_context << Instruction::DUP2 << Instruction::DUP2 
+                    << Instruction::ADD;
             }
+
+            // storage argument to memory
             utils().packedEncode({argType}, {*param});
-            utils().toSizeAfterFreeMemoryPointer();
-            ++argNum;
+
+            // calculate argument's length and sort: data->len
+            if (count == 0) {
+                utils().toSizeAfterFreeMemoryPointer();
+            } else {
+                // get arugment's address
+                m_context << Instruction::DUP3 << Instruction::DUP3 
+                    << Instruction::ADD;
+                // get argument's length
+                m_context << Instruction::DUP1 << Instruction::SWAP2 
+                    << Instruction::SUB;
+                // swap order of address and length
+                m_context << Instruction::SWAP1;
+            }
+            ++count;
             ++param;
         }
         argPos.push_back(m_context.currentToBaseStackOffset(1));
