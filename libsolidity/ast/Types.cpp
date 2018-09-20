@@ -3277,10 +3277,10 @@ MemberList::MemberMap MagicType::nativeMembers(ContractDefinition const*) const
                     StateMutability::View)},
             {"getValueByKey", make_shared<FunctionType>(
                     strings{"uint256", "uint", "string memory"}, 
-                    strings{"string"}, FunctionType::Kind::GetValueByKey, 
+                    strings{"string memory"}, FunctionType::Kind::GetValueByKey, 
                     false, StateMutability::View)},
             {"getValueByIndex", make_shared<FunctionType>(
-                    strings{"uint256", "uint", "uint"}, strings{"string"}, 
+                    strings{"uint256", "uint", "uint"}, strings{"string memory"}, 
                     FunctionType::Kind::GetValueByIndex, false, 
                     StateMutability::View)},
             {"beginTrans", make_shared<FunctionType>(strings{}, strings{}, 

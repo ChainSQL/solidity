@@ -1250,6 +1250,8 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
                 (*arg)->accept(*this);
                 utils().convertType(*argType, **param, true);
             }
+
+            (*arg)->accept(*this);  // had point to third item by for-loop
             TypePointer const &argType = (*arg)->annotation().type;
             if (*argType==ArrayType(DataLocation::Memory) || 
                     *argType==ArrayType(DataLocation::Memory, true)) {
