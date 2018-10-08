@@ -1179,6 +1179,10 @@ void CompilerUtils::popAndJump(unsigned _toHeight, eth::AssemblyItem const& _jum
 	m_context.adjustStackOffset(amount);
 }
 
+void CompilerUtils::pushExitMark() {
+    m_context << Instruction::EXEXITFUNC;
+}
+
 unsigned CompilerUtils::sizeOnStack(vector<shared_ptr<Type const>> const& _variableTypes)
 {
 	unsigned size = 0;

@@ -201,6 +201,7 @@ enum class Instruction: uint8_t
     EXGETCOLSIZE,
     EXGETVALUEBYKEY,
     EXGETVALUEBYINDEX,
+    EXEXITFUNC,
     /** NOTE: maximum value is 0xef */
 
 	CREATE = 0xf0,		///< create a new account with associated code

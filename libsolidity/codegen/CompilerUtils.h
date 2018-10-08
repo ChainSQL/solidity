@@ -245,6 +245,7 @@ public:
 	/// Adds jump to _jumpTo.
 	/// Readjusts the stack offset to the original value.
 	void popAndJump(unsigned _toHeight, eth::AssemblyItem const& _jumpTo);
+    void pushExitMark();
 
 	template <class T>
 	static unsigned sizeOnStack(std::vector<T> const& _variables);
