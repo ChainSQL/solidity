@@ -444,85 +444,36 @@ bool ExpressionCompiler::visit(BinaryOperation const& _binaryOperation)
 	return false;
 }
 
+void ExpressionCompiler::copyParamToMemory(
+        const ASTPointer<Expression const> &_arg, 
+        TypePointer &_param) {
+    TypePointer const &argType = _arg->annotation().type;
+    _arg->accept(*this);
+
+    if (*argType==ArrayType(DataLocation::Memory) || 
+            *argType==ArrayType(DataLocation::Memory, true)) {
+        ArrayUtils(m_context).retrieveLength(
+                ArrayType(DataLocation::Memory));
+        m_context << Instruction::SWAP1 
+            << u256(0x20) << Instruction::ADD;
+    } else {
+        utils().fetchFreeMemoryPointer();
+        utils().packedEncode({argType}, {_param});
+        utils().toSizeAfterFreeMemoryPointer();
+        m_context << Instruction::DUP2 << Instruction::DUP2 
+            << Instruction::ADD;
+        utils().storeFreeMemoryPointer();
+    }
+}
+
 void ExpressionCompiler::prepareSQLCallMemParams(
         std::vector<ASTPointer<Expression const>> const& _arguments, 
         TypePointers _parameters) {
     auto param = _parameters.begin();
-    std::vector<unsigned> argPos;
-    unsigned count = 0;
     for (const auto &arg : _arguments) {
-        TypePointer const &argType = arg->annotation().type;
-        solAssert(argType, "");
-        arg->accept(*this);
-
-        if (*argType==ArrayType(DataLocation::Memory) || 
-                *argType==ArrayType(DataLocation::Memory, true)) {
-            ArrayUtils(m_context).retrieveLength(
-                    ArrayType(DataLocation::Memory));
-            m_context << Instruction::SWAP1 
-                << u256(0x20) << Instruction::ADD;
-        } else {
-            // get next storage location
-            if (count == 0) {
-                utils().fetchFreeMemoryPointer();
-            } else {
-                m_context << Instruction::DUP2 << Instruction::DUP2 
-                    << Instruction::ADD;
-            }
-
-            // storage argument to memory
-            utils().packedEncode({argType}, {*param});
-
-            // calculate argument's length and sort: data->len
-            if (count == 0) {
-                utils().toSizeAfterFreeMemoryPointer();
-            } else {
-                // get arugment's address
-                m_context << Instruction::DUP3 << Instruction::DUP3 
-                    << Instruction::ADD;
-                // get argument's length
-                m_context << Instruction::DUP1 << Instruction::SWAP2 
-                    << Instruction::SUB;
-                // swap order of address and length
-                m_context << Instruction::SWAP1;
-            }
-            ++count;
-            ++param;
-        }
-        argPos.push_back(m_context.currentToBaseStackOffset(1));
+        copyParamToMemory(arg, *param);
+        ++param;
     }
-
-    for (auto pos=argPos.rbegin(); pos!=argPos.rend(); ++pos) {
-        solAssert(*pos>1, "");
-        m_context << dupInstruction(
-                m_context.currentToBaseStackOffset(*pos-1));
-        m_context << dupInstruction(
-                m_context.currentToBaseStackOffset(*pos));
-    }
-}
-
-unsigned ExpressionCompiler::prepareSQLCallParams(
-        FunctionCall const& _functionCall, 
-        std::vector<ASTPointer<Expression const>> const& _arguments, 
-        TypePointers _parameters) {
-    solAssert(_arguments.size()==_parameters.size(), 
-            "argument'size doesn't math parameter");
-
-    _functionCall.expression().accept(*this);
-    unsigned contractPos = m_context.currentToBaseStackOffset(1);
-
-    prepareSQLCallMemParams(_arguments, _parameters);
-
-    m_context << dupInstruction(
-            m_context.currentToBaseStackOffset(contractPos));
-
-    return contractPos;
-}
-
-void ExpressionCompiler::clearSQLCallParams(unsigned offset) {
-    unsigned distance = m_context.currentToBaseStackOffset(offset);
-    m_context << swapInstruction(distance-1);
-    utils().popStackSlots(distance-1);
 }
 
 bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
@@ -1159,39 +1110,71 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
         case FunctionType::Kind::RenameSQL:
         case FunctionType::Kind::InsertSQL:
         case FunctionType::Kind::DeleteSQL:
-        case FunctionType::Kind::DropSQL:    
-        case FunctionType::Kind::UpdateSQL:
         case FunctionType::Kind::GetSQL: {
 			solAssert(!function.padArguments(), "");
+            solAssert(arguments.size() == 2, 
+                    "argument'size doesn't math parameter");
 
-            unsigned clearPos = prepareSQLCallParams(_functionCall, 
-                    arguments, parameterTypes);
+            _functionCall.expression().accept(*this);
+            prepareSQLCallMemParams(arguments, parameterTypes);
 
+            Instruction cmd;
             if (FunctionType::Kind::CreateSQL == function.kind()) {
-                m_context << Instruction::CREATETABLE;
+                cmd = Instruction::CREATETABLE;
             } else if (FunctionType::Kind::RenameSQL == function.kind()) {
-                m_context << Instruction::EXRENAMETABLE;
+                cmd = Instruction::EXRENAMETABLE;
             } else if (FunctionType::Kind::InsertSQL == function.kind()) {
-                m_context << Instruction::EXINSERTSQL;
+                cmd = Instruction::EXINSERTSQL;
             } else if (FunctionType::Kind::DeleteSQL == function.kind()) {
-                m_context << Instruction::EXDELETESQL;
-            } else if (FunctionType::Kind::DropSQL == function.kind()) {
-                m_context << Instruction::EXDROPTABLE;
-            } else if (FunctionType::Kind::UpdateSQL == function.kind()) {
-                m_context << Instruction::EXUPDATESQL;
+                cmd = Instruction::EXDELETESQL;
             } else if (FunctionType::Kind::GetSQL == function.kind()) {
-                m_context << Instruction::EXSELECTSQL;
+                cmd = Instruction::EXSELECTSQL;
+            } else {
+                break;
             }
 
-            clearSQLCallParams(clearPos);
-			break;
+            m_context << Instruction::DUP2 << Instruction::DUP2 
+                << Instruction::DUP6 << Instruction::DUP6 
+                << Instruction::DUP9 << cmd << swapInstruction(5);
+
+            utils().popStackSlots(5);
+            break;
+        }
+        case FunctionType::Kind::DropSQL: {
+            solAssert(arguments.size() == 1, 
+                    "argument'size doesn't math parameter");
+
+            _functionCall.expression().accept(*this);
+            prepareSQLCallMemParams(arguments, parameterTypes);
+
+            m_context << Instruction::DUP2 << Instruction::DUP2 
+                << Instruction::DUP3 << Instruction::EXDROPTABLE 
+                << swapInstruction(3);
+
+            utils().popStackSlots(3);
+            break;
+        }
+        case FunctionType::Kind::UpdateSQL: {
+            solAssert(arguments.size() == 3, 
+                    "argument'size doesn't math parameter");
+
+            _functionCall.expression().accept(*this);
+            prepareSQLCallMemParams(arguments, parameterTypes);
+
+            m_context << Instruction::DUP2 << Instruction::DUP2 
+                << Instruction::DUP6 << Instruction::DUP6 
+                << Instruction::DUP10 << Instruction::DUP10 
+                << Instruction::DUP13 << Instruction::EXUPDATESQL 
+                << swapInstruction(7);
+
+            utils().popStackSlots(7);
+            break;
         }
         case FunctionType::Kind::GrantSQL: {
             solAssert(arguments.size()==3, 
                     "argument's size doesn't math parameter");
 
             _functionCall.expression().accept(*this);
-            unsigned contractPos = m_context.currentToBaseStackOffset(1);
 
             /** argument: grant to who(address) */
             auto const &argType = arguments.front()->annotation().type;
@@ -1203,13 +1186,12 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
             TypePointers params(parameterTypes.begin()+1, parameterTypes.end());
             prepareSQLCallMemParams(memArguments, params);
 
-            m_context << dupInstruction(
-                    m_context.currentToBaseStackOffset(contractPos+1));
-            m_context << dupInstruction(
-                    m_context.currentToBaseStackOffset(contractPos));
-            m_context << Instruction::EXGRANTSQL;
+            m_context << Instruction::DUP2 << Instruction::DUP2 
+                << Instruction::DUP6 << Instruction::DUP6 
+                << Instruction::DUP9 << Instruction::DUP11
+                << Instruction::EXGRANTSQL << swapInstruction(6);
 
-            clearSQLCallParams(contractPos);
+            utils().popStackSlots(6);
             break;                                   
         }
         case FunctionType::Kind::BeginTrans: {
@@ -1240,8 +1222,6 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
             solAssert(arguments.size()==3, 
                     "argument's size doesn't math parameter");
 
-            unsigned clearPos = m_context.currentToBaseStackOffset(0);
-
             auto param = parameterTypes.begin();
             auto arg = arguments.begin();
             for ( ; arg!=arguments.begin()+2; ++arg, ++param) {
@@ -1250,33 +1230,26 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
                 (*arg)->accept(*this);
                 utils().convertType(*argType, **param, true);
             }
+            copyParamToMemory(*arg, *param);
 
-            (*arg)->accept(*this);  // had point to third item by for-loop
-            TypePointer const &argType = (*arg)->annotation().type;
-            if (*argType==ArrayType(DataLocation::Memory) || 
-                    *argType==ArrayType(DataLocation::Memory, true)) {
-                ArrayUtils(m_context).retrieveLength(
-                        ArrayType(DataLocation::Memory));
-                m_context << Instruction::SWAP1 
-                    << u256(0x20) << Instruction::ADD;
-            } else {
-                utils().fetchFreeMemoryPointer();
-                utils().packedEncode({argType}, {*param});
-                utils().toSizeAfterFreeMemoryPointer();
-            }
+            // get output buffer
+            m_context << Instruction::DUP2 << Instruction::DUP2 
+                << Instruction::DUP5 << Instruction::DUP7 
+                << Instruction::EXGETLENBYKEY;
+            m_context << u256(0x20) << Instruction::ADD << Instruction::DUP1;
+            utils().allocateMemory();
 
             m_context << Instruction::DUP2 << Instruction::DUP2 
-                << Instruction::DUP5 << Instruction::DUP7;
-            m_context << Instruction::EXGETVALUEBYKEY;
+                << Instruction::DUP6 << Instruction::DUP6 
+                << Instruction::DUP9 << Instruction::DUP11 
+                << Instruction::EXGETVALUEBYKEY << swapInstruction(6);
 
-            clearSQLCallParams(clearPos);
+            utils().popStackSlots(6);
             break;
         }
         case FunctionType::Kind::GetValueByIndex: {
             solAssert(arguments.size()==3, 
                     "argument's size doesn't math parameter");
-
-            unsigned clearPos = m_context.currentToBaseStackOffset(0);
 
             auto param = parameterTypes.begin();
             for (auto arg=arguments.begin(); 
@@ -1287,10 +1260,18 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
                 utils().convertType(*argType, **param, true);
             }
 
+            // get output buffer
             m_context << Instruction::DUP1 << Instruction::DUP3 
-                << Instruction::DUP5 << Instruction::EXGETVALUEBYINDEX;
+                << Instruction::DUP5 << Instruction::EXGETLENBYINDEX;
+            m_context << u256(0x20) << Instruction::ADD << Instruction::DUP1;
+            utils().allocateMemory();
 
-            clearSQLCallParams(clearPos);
+            m_context << Instruction::DUP2 << Instruction::DUP2 
+                << Instruction::DUP5 << Instruction::DUP7 
+                << Instruction::DUP9 << Instruction::EXGETVALUEBYINDEX 
+                << swapInstruction(5);
+
+            utils().popStackSlots(5);
             break;
         }
 		default:
