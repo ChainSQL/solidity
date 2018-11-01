@@ -209,14 +209,6 @@ namespace solidity
 	T(BytesM, "bytesM", 0)                                             \
 	T(FixedMxN, "fixedMxN", 0)                                         \
 	T(UFixedMxN, "ufixedMxN", 0)                                       \
-    K(CreateSQL, "CreateSQL", 0)                                       \
-    K(DropSQL, "DropSQL", 0)                                           \
-    K(RenameSQL, "RenameSQL", 0)                                       \
-    K(InsertSQL, "InsertSQL", 0)                                       \
-    K(DeleteSQL, "DeleteSQL", 0)                                       \
-    K(UpdateSQL, "UpdateSQL", 0)                                       \
-    K(SelectSQL, "SelectSQL", 0)                                       \
-    K(GrantSQL, "GrantSQL", 0)                                         \
 	T(TypesEnd, NULL, 0) /* used as type enum end marker */            \
 	\
 	/* Literals */                                                     \
