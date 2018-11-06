@@ -1148,7 +1148,7 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
             prepareSQLCallMemParams(arguments, parameterTypes);
 
             m_context << Instruction::DUP2 << Instruction::DUP2 
-                << Instruction::DUP3 << Instruction::EXDROPTABLE 
+                << Instruction::DUP5 << Instruction::EXDROPTABLE 
                 << swapInstruction(3);
 
             utils().popStackSlots(3);
