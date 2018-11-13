@@ -120,7 +120,7 @@ elseif (DEFINED MSVC)
 
     add_compile_options(/MP)						# enable parallel compilation
 	add_compile_options(/EHsc)						# specify Exception Handling Model in msvc
-	add_compile_options(/WX)						# enable warnings-as-errors
+	add_compile_options(/WX-)						# enable warnings-as-errors
 	add_compile_options(/wd4068)					# disable unknown pragma warning (4068)
 	add_compile_options(/wd4996)					# disable unsafe function warning (4996)
 	add_compile_options(/wd4503)					# disable decorated name length exceeded, name was truncated (4503)

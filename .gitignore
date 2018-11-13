@@ -46,3 +46,7 @@ CMakeLists.txt.user
 
 # deps
 deps
+
+boost_1_57_0
+soljson.js
+upload
