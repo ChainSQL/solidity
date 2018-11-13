@@ -614,7 +614,7 @@ MemberList::MemberMap IntegerType::nativeMembers(ContractDefinition const*) cons
 			{"insert", make_shared<FunctionType>(strings{"string memory", "string memory"}, strings{"bool"}, FunctionType::Kind::InsertSQL)},
 			{"deletex", make_shared<FunctionType>(strings{"string memory", "string memory"}, strings{"bool"}, FunctionType::Kind::DeleteSQL)},
 			{"update", make_shared<FunctionType>(strings{"string memory", "string memory", "string memory"}, strings{"bool"}, FunctionType::Kind::UpdateSQL)},
-			{"get", make_shared<FunctionType>(strings{"string memory", "string memory"}, strings{"uint256"}, FunctionType::Kind::GetSQL)},
+			{"get", make_shared<FunctionType>(strings{"string memory", "string memory"}, strings{"uint256"}, FunctionType::Kind::GetSQL, false, StateMutability::View)},
 			{"grant", make_shared<FunctionType>(strings{"address", "string memory", "string memory"}, strings{"bool"}, FunctionType::Kind::GrantSQL)}
 		};
 	else
