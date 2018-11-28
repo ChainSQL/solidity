@@ -958,7 +958,7 @@ void ContractCompiler::appendModifierOrFunctionCode()
 		for (auto var: addedVariables)
 			m_context.removeVariable(*var);
 	}
-    m_context << Instruction::EXEXITFUNC;
+	//CompilerUtils(m_context).pushExitMark();
 	m_modifierDepth--;
 }
 
