@@ -55,6 +55,8 @@ m_magicVariables(vector<shared_ptr<MagicVariableDeclaration const>>{
 	make_shared<MagicVariableDeclaration>("require", make_shared<FunctionType>(strings{"bool", "string memory"}, strings{}, FunctionType::Kind::Require, false, StateMutability::Pure)),
 	make_shared<MagicVariableDeclaration>("revert", make_shared<FunctionType>(strings(), strings(), FunctionType::Kind::Revert, false, StateMutability::Pure)),
 	make_shared<MagicVariableDeclaration>("revert", make_shared<FunctionType>(strings{"string memory"}, strings(), FunctionType::Kind::Revert, false, StateMutability::Pure)),
+	make_shared<MagicVariableDeclaration>("revertdiy", make_shared<FunctionType>(strings(), strings(), FunctionType::Kind::RevertDIY, false, StateMutability::Pure)),
+	make_shared<MagicVariableDeclaration>("revertdiy", make_shared<FunctionType>(strings{ "string memory" }, strings(), FunctionType::Kind::RevertDIY, false, StateMutability::Pure)),
 	make_shared<MagicVariableDeclaration>("ripemd160", make_shared<FunctionType>(strings{"bytes memory"}, strings{"bytes20"}, FunctionType::Kind::RIPEMD160, false, StateMutability::Pure)),
 	make_shared<MagicVariableDeclaration>("selfdestruct", make_shared<FunctionType>(strings{"address"}, strings{}, FunctionType::Kind::Selfdestruct)),
 	make_shared<MagicVariableDeclaration>("sha256", make_shared<FunctionType>(strings{"bytes memory"}, strings{"bytes32"}, FunctionType::Kind::SHA256, false, StateMutability::Pure)),

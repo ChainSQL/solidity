@@ -126,6 +126,7 @@ bool SemanticInformation::altersControlFlow(AssemblyItem const& _item)
 	case Instruction::STOP:
 	case Instruction::INVALID:
 	case Instruction::REVERT:
+	case Instruction::REVERTDIY:
 		return true;
 	default:
 		return false;

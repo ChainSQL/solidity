@@ -608,14 +608,14 @@ MemberList::MemberMap IntegerType::nativeMembers(ContractDefinition const*) cons
 			{"delegatecall", make_shared<FunctionType>(strings{"bytes memory"}, strings{"bool"}, FunctionType::Kind::BareDelegateCall, false)},
 			{"send", make_shared<FunctionType>(strings{"uint"}, strings{"bool"}, FunctionType::Kind::Send)},
 			{"transfer", make_shared<FunctionType>(strings{"uint"}, strings(), FunctionType::Kind::Transfer)},
-			{"create", make_shared<FunctionType>(strings{"string memory", "string memory"}, strings{"bool"}, FunctionType::Kind::CreateSQL)},
-			{"drop", make_shared<FunctionType>(strings{"string memory"}, strings{"bool"}, FunctionType::Kind::DropSQL)},
-			{"rename", make_shared<FunctionType>(strings{"string memory", "string memory"}, strings{"bool"}, FunctionType::Kind::RenameSQL)},
-			{"insert", make_shared<FunctionType>(strings{"string memory", "string memory"}, strings{"bool"}, FunctionType::Kind::InsertSQL)},
-			{"deletex", make_shared<FunctionType>(strings{"string memory", "string memory"}, strings{"bool"}, FunctionType::Kind::DeleteSQL)},
-			{"update", make_shared<FunctionType>(strings{"string memory", "string memory", "string memory"}, strings{"bool"}, FunctionType::Kind::UpdateSQL)},
+			{"create", make_shared<FunctionType>(strings{"string memory", "string memory"}, strings(), FunctionType::Kind::CreateSQL)},
+			{"drop", make_shared<FunctionType>(strings{"string memory"}, strings(), FunctionType::Kind::DropSQL)},
+			{"rename", make_shared<FunctionType>(strings{"string memory", "string memory"}, strings(), FunctionType::Kind::RenameSQL)},
+			{"insert", make_shared<FunctionType>(strings{"string memory", "string memory"}, strings(), FunctionType::Kind::InsertSQL)},
+			{"deletex", make_shared<FunctionType>(strings{"string memory", "string memory"}, strings(), FunctionType::Kind::DeleteSQL)},
+			{"update", make_shared<FunctionType>(strings{"string memory", "string memory", "string memory"}, strings(), FunctionType::Kind::UpdateSQL)},
 			{"get", make_shared<FunctionType>(strings{"string memory", "string memory"}, strings{"uint256"}, FunctionType::Kind::GetSQL, false, StateMutability::View)},
-			{"grant", make_shared<FunctionType>(strings{"address", "string memory", "string memory"}, strings{"bool"}, FunctionType::Kind::GrantSQL)}
+			{"grant", make_shared<FunctionType>(strings{"address", "string memory", "string memory"}, strings(), FunctionType::Kind::GrantSQL)}
 		};
 	else
 		return MemberList::MemberMap();
@@ -2493,6 +2493,7 @@ string FunctionType::richIdentifier() const
 	case Kind::SHA3: id += "sha3"; break;
 	case Kind::Selfdestruct: id += "selfdestruct"; break;
 	case Kind::Revert: id += "revert"; break;
+	case Kind::RevertDIY: id += "revertdiy"; break;
 	case Kind::ECRecover: id += "ecrecover"; break;
 	case Kind::SHA256: id += "sha256"; break;
 	case Kind::RIPEMD160: id += "ripemd160"; break;
@@ -3285,7 +3286,7 @@ MemberList::MemberMap MagicType::nativeMembers(ContractDefinition const*) const
                     StateMutability::View)},
             {"beginTrans", make_shared<FunctionType>(strings{}, strings{}, 
                     FunctionType::Kind::BeginTrans)}, 
-            {"commit", make_shared<FunctionType>(strings{}, strings{"bool"}, 
+            {"commit", make_shared<FunctionType>(strings{}, strings(),
                     FunctionType::Kind::CommitTrans)}
 		});
 	default:

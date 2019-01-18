@@ -302,6 +302,23 @@ CompilerContext& CompilerContext::appendConditionalRevert(bool _forwardReturnDat
 	return *this;
 }
 
+CompilerContext& CompilerContext::appendConditionalRevertDIY(bool _forwardReturnData)
+{
+	if (_forwardReturnData && m_evmVersion.supportsReturndata())
+		appendInlineAssembly(R"({
+			if condition {
+				returndatacopy(0, 0, returndatasize())
+				revertdiy(0, returndatasize())
+			}
+		})", { "condition" });
+	else
+		appendInlineAssembly(R"({
+			if condition { revertdiy(0, 0) }
+		})", { "condition" });
+	*this << Instruction::POP;
+	return *this;
+}
+
 void CompilerContext::resetVisitedNodes(ASTNode const* _node)
 {
 	stack<ASTNode const*> newStack;

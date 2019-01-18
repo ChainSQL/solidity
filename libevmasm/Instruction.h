@@ -203,7 +203,8 @@ enum class Instruction: uint8_t
     EXGETVALUEBYINDEX,
     EXEXITFUNC,
     EXGETLENBYKEY,
-    EXGETLENBYINDEX,
+    EXGETLENBYINDEX = 0xd0,
+	REVERTDIY,
     /** NOTE: maximum value is 0xef */
 
 	CREATE = 0xf0,		///< create a new account with associated code
@@ -213,7 +214,7 @@ enum class Instruction: uint8_t
 	DELEGATECALL,		///< like CALLCODE but keeps caller's value and sender
 	STATICCALL = 0xfa,	///< like CALL but disallow state modifications
 	CREATE2 = 0xfb,		///< create new account with associated code at address `sha3(sender + salt + sha3(init code)) % 2**160`
-
+	
 	REVERT = 0xfd,		///< halt execution, revert state and return output data
 	INVALID = 0xfe,		///< invalid instruction for expressing runtime errors (e.g., division-by-zero)
 	SELFDESTRUCT = 0xff	///< halt execution and register account for later deletion

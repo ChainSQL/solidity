@@ -935,7 +935,8 @@ public:
         GetRowSize,
         GetColSize,
         GetValueByKey,
-        GetValueByIndex
+        GetValueByIndex,
+		RevertDIY
 	};
 
 	virtual Category category() const override { return Category::Function; }

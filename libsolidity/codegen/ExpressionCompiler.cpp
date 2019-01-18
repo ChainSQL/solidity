@@ -1113,9 +1113,12 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
         case FunctionType::Kind::GetSQL: {
 			solAssert(!function.padArguments(), "");
             solAssert(arguments.size() == 2, 
-                    "argument'size doesn't math parameter");
+                    "argument'size doesn't match parameter");
 
+			//msg.sender.create
             _functionCall.expression().accept(*this);
+
+			//copy call params to memory
             prepareSQLCallMemParams(arguments, parameterTypes);
 
             Instruction cmd;
@@ -1138,6 +1141,14 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
                 << Instruction::DUP9 << cmd << swapInstruction(5);
 
             utils().popStackSlots(5);
+
+			if (FunctionType::Kind::GetSQL != function.kind())
+			{
+				// check to throw self-defined error code
+				m_context << Instruction::ISZERO;
+				m_context.appendConditionalRevertDIY(true);
+			}
+
             break;
         }
         case FunctionType::Kind::DropSQL: {
@@ -1152,6 +1163,11 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
                 << swapInstruction(3);
 
             utils().popStackSlots(3);
+
+			// check to throw self-defined error code
+			m_context << Instruction::ISZERO;
+			m_context.appendConditionalRevertDIY(true);
+
             break;
         }
         case FunctionType::Kind::UpdateSQL: {
@@ -1168,6 +1184,11 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
                 << swapInstruction(7);
 
             utils().popStackSlots(7);
+
+			// check to throw self-defined error code
+			m_context << Instruction::ISZERO;
+			m_context.appendConditionalRevertDIY(true);
+
             break;
         }
         case FunctionType::Kind::GrantSQL: {
@@ -1192,6 +1213,11 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
                 << Instruction::EXGRANTSQL << swapInstruction(6);
 
             utils().popStackSlots(6);
+
+			// check to throw self-defined error code
+			m_context << Instruction::ISZERO;
+			m_context.appendConditionalRevertDIY(true);
+
             break;                                   
         }
         case FunctionType::Kind::BeginTrans: {
@@ -1200,6 +1226,11 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
         }
         case FunctionType::Kind::CommitTrans: {
             m_context << Instruction::EXTRANSCOMMIT;
+
+			// check to throw self-defined error code
+			m_context << Instruction::ISZERO;
+			m_context.appendConditionalRevertDIY(true);
+
             break;
         }
         case FunctionType::Kind::GetRowSize: 

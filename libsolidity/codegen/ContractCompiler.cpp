@@ -312,7 +312,7 @@ void ContractCompiler::appendFunctionSelector(ContractDefinition const& _contrac
 		m_context << dupInstruction(1) << u256(FixedHash<4>::Arith(it.first)) << Instruction::EQ;
 		m_context.appendConditionalJumpTo(callDataUnpackerEntryPoints.at(it.first));
 	}
-	m_context.appendJumpTo(notFound);
+ 	m_context.appendJumpTo(notFound);
 
 	m_context << notFound;
 	if (fallback)

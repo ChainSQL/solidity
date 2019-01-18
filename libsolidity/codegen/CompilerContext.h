@@ -166,6 +166,7 @@ public:
 	/// If the current EVM version does not support RETURNDATA, uses REVERT but does not forward
 	/// the data.
 	CompilerContext& appendConditionalRevert(bool _forwardReturnData = false);
+	CompilerContext& appendConditionalRevertDIY(bool _forwardReturnData = false);
 	/// Appends a JUMP to a specific tag
 	CompilerContext& appendJumpTo(eth::AssemblyItem const& _tag) { m_asm->appendJump(_tag); return *this; }
 	/// Appends pushing of a new tag and @returns the new tag.
