@@ -31,5 +31,5 @@ set -e
 WORKSPACE=`pwd`
 if [[ "$OSTYPE" != "darwin"* ]]; then
     ./scripts/travis-emscripten/install_deps.sh
-    docker run -v $(pwd):$WORKSPACE -w $WORKSPACE trzeci/emscripten:sdk-tag-1.35.4-64bit ./scripts/travis-emscripten/build_emscripten.sh $WORKSPACE
+    docker run -v $(pwd):$WORKSPACE -w $WORKSPACE trzeci/emscripten:sdk-tag-1.35.4-64bit ./scripts/travis-emscripten/build_emscripten_wrap.sh $WORKSPACE
 fi

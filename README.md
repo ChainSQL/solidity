@@ -106,7 +106,8 @@ cmake --build . --config RelWithDebInfo
 
 #### Prerequisites
 
-1. sudo apt-get install docker
+1. rm -rf build/
+2. sudo apt-get install docker
 
 #### Execute buiding commands
 

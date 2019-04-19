@@ -34,15 +34,17 @@
 
 set -ev
 
+if ! type git &>/dev/null || ! type git &>/dev/null; then
+    apt-get -o Acquire::Check-Valid-Until=false update
+fi
+
 if ! type git &>/dev/null; then
     # We need git for extracting the commit hash
-    apt-get update
     apt-get -y install git-core
 fi
 
 if ! type wget &>/dev/null; then
     # We need wget to install cmake
-    apt-get update
     apt-get -y install wget
 fi
 
