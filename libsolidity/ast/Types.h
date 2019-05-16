@@ -922,6 +922,8 @@ public:
 		ABIEncodeWithSelector,
 		ABIEncodeWithSignature,
 		GasLeft, ///< gasleft()
+
+        /* Begin SQL */
         CreateSQL, // create a table
         DropSQL,
         RenameSQL,
@@ -936,7 +938,20 @@ public:
         GetColSize,
         GetValueByKey,
         GetValueByIndex,
-		RevertDIY
+        /* End SQL */
+
+        /* Begin Token */
+        AccountSet,
+        SetTransferRate,
+        SetTransferRange,
+        TrustSet,
+        TrustLimit,
+        GateWayBalance,
+        Pay,
+        /* End Token */
+
+		RevertDIY,
+        
 	};
 
 	virtual Category category() const override { return Category::Function; }

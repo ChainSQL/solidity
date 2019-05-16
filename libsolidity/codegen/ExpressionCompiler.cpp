@@ -1305,6 +1305,163 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
             utils().popStackSlots(5);
             break;
         }
+        case FunctionType::Kind::AccountSet: {
+            solAssert(arguments.size() == 2,
+                "argument's size doesn't math parameter");
+
+            /* address */
+            _functionCall.expression().accept(*this);
+
+            /* arguments (uint32, bool)*/
+            auto param = parameterTypes.begin();
+            for (auto arg = arguments.begin();
+                arg != arguments.end(); ++arg, ++param) {
+                TypePointer const &argType = (*arg)->annotation().type;
+                solAssert(argType, "");
+                (*arg)->accept(*this);
+                utils().convertType(*argType, **param, true);
+            }
+
+            m_context << Instruction::DUP1 << Instruction::DUP3
+                << Instruction::DUP5 << Instruction::EXACCOUNTSET;
+
+            utils().popStackSlots(3);
+
+            break;
+        }
+        case FunctionType::Kind::SetTransferRate: {
+            solAssert(arguments.size() == 1, "argument's size doesn't math parameter");
+
+            /* address */
+            _functionCall.expression().accept(*this);
+
+            /* argument (string memory) */
+            prepareSQLCallMemParams(arguments, parameterTypes);
+
+            m_context << Instruction::DUP2 << Instruction::DUP2
+                << Instruction::DUP5 << Instruction::EXTRANSFERRATESET;
+
+            utils().popStackSlots(3);
+
+            break;
+        }
+        case FunctionType::Kind::SetTransferRange:
+        {
+            solAssert(arguments.size() == 2, "argument's size doesn't math parameter");
+
+            /* address */
+            _functionCall.expression().accept(*this);
+
+            /* arguments (string memory, string memory) */
+            prepareSQLCallMemParams(arguments, parameterTypes);
+
+            m_context << Instruction::DUP2 << Instruction::DUP2
+                << Instruction::DUP6 << Instruction::DUP6
+                << Instruction::DUP9 << Instruction::EXTRANSFERRANGESET;
+
+            utils().popStackSlots(5);
+
+            break;
+        }
+        case FunctionType::Kind::TrustSet:
+        {
+            solAssert(arguments.size() == 3, "argument's size doesn't math parameter");
+
+            /* address */
+            _functionCall.expression().accept(*this);
+
+            /* arguments (string memory, string memory) */
+            std::vector<ASTPointer<Expression const>> memArguments(
+                arguments.begin(), arguments.end() - 1);
+            TypePointers params(parameterTypes.begin(), parameterTypes.end() - 1);
+            prepareSQLCallMemParams(memArguments, params);
+
+            /** argument (address) */
+            auto const &argType = arguments.back()->annotation().type;
+            solAssert(argType, "");
+            arguments.back()->accept(*this);
+
+            m_context << Instruction::DUP1 
+                << Instruction::DUP4 << Instruction::DUP4
+                << Instruction::DUP8 << Instruction::DUP8
+                << Instruction::DUP11 << Instruction::EXTRUSTSET;
+
+            utils().popStackSlots(6);
+
+            break;
+        }
+        case FunctionType::Kind::TrustLimit:
+        case FunctionType::Kind::GateWayBalance:
+        {
+            solAssert(arguments.size() == 2, "argument's size doesn't math parameter");
+
+            /* address */
+            _functionCall.expression().accept(*this);
+
+            /* argument (string memory) */
+            copyParamToMemory(*arguments.begin(), *parameterTypes.begin());
+
+            /** argument (address) */
+            auto const &argType = arguments.back()->annotation().type;
+            solAssert(argType, "");
+            arguments.back()->accept(*this);
+
+            Instruction cmd;
+            switch (function.kind())
+            {
+            case FunctionType::Kind::TrustLimit:
+                cmd = Instruction::EXTRUSTLIMIT;
+                break;
+            case FunctionType::Kind::GateWayBalance:
+                cmd = Instruction::EXGATEWAYBALANCE;
+                break;
+            default:
+                break;
+            }
+
+            m_context << Instruction::DUP1
+                << Instruction::DUP4 << Instruction::DUP4
+                << Instruction::DUP7 << cmd
+                << swapInstruction(4);
+
+            utils().popStackSlots(4);
+
+            break;
+        }
+        case FunctionType::Kind::Pay:
+        {
+            solAssert(arguments.size() == 4, "argument's size doesn't math parameter");
+
+            /* address */
+            _functionCall.expression().accept(*this);
+
+            /** argument (address) */
+            auto const &argType1 = arguments.front()->annotation().type;
+            solAssert(argType1, "");
+            arguments.front()->accept(*this);
+
+            /* arguments (string memory, string memory) */
+            std::vector<ASTPointer<Expression const>> memArguments(
+                arguments.begin() + 1, arguments.end() - 1);
+            TypePointers params(parameterTypes.begin() + 1, parameterTypes.end() - 1);
+            prepareSQLCallMemParams(memArguments, params);
+
+            /** argument (address) */
+            auto const &argType2 = arguments.back()->annotation().type;
+            solAssert(argType2, "");
+            arguments.back()->accept(*this);
+
+            m_context << Instruction::DUP1
+                << Instruction::DUP4 << Instruction::DUP4
+                << Instruction::DUP8 << Instruction::DUP8
+                << Instruction::DUP11
+                << Instruction::DUP13
+                << Instruction::EXPAY;
+
+            utils().popStackSlots(7);
+
+            break;
+        }
 		default:
 			solAssert(false, "Invalid function type.");
 		}
@@ -1390,6 +1547,13 @@ bool ExpressionCompiler::visit(MemberAccess const& _memberAccess)
                 case FunctionType::Kind::InsertSQL:
                 case FunctionType::Kind::DeleteSQL:
                 case FunctionType::Kind::UpdateSQL:
+                case FunctionType::Kind::AccountSet:
+                case FunctionType::Kind::SetTransferRate:
+                case FunctionType::Kind::SetTransferRange:
+                case FunctionType::Kind::TrustSet:
+                case FunctionType::Kind::TrustLimit:
+                case FunctionType::Kind::GateWayBalance:
+                case FunctionType::Kind::Pay:
 					_memberAccess.expression().accept(*this);
 					m_context << funType->externalIdentifier();
 					break;
@@ -1492,7 +1656,9 @@ bool ExpressionCompiler::visit(MemberAccess const& _memberAccess)
 		}
 		else if ((set<string>{"send", "transfer", "call", "callcode", 
                     "delegatecall", "create", "drop", "rename", "insert", 
-                    "deletex", "update", "grant", "get"}).count(member)) {
+                    "deletex", "update", "grant", "get", 
+                    "accountSet", "setTransferRate", "setTransferRange",
+                    "trustSet", "trustLimit", "gateWayBalance", "pay"}).count(member)) {
 			utils().convertType(
 				*_memberAccess.expression().annotation().type,
 				IntegerType(160, IntegerType::Modifier::Address),

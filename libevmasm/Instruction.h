@@ -204,6 +204,15 @@ enum class Instruction: uint8_t
     EXEXITFUNC,
     EXGETLENBYKEY,
     EXGETLENBYINDEX = 0xd0,
+
+    EXACCOUNTSET,
+    EXTRANSFERRATESET,
+    EXTRANSFERRANGESET,
+    EXTRUSTSET,
+    EXTRUSTLIMIT,
+    EXGATEWAYBALANCE,
+    EXPAY,
+
 	REVERTDIY,
     /** NOTE: maximum value is 0xef */
 
