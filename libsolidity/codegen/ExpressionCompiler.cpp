@@ -1323,9 +1323,13 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
             }
 
             m_context << Instruction::DUP1 << Instruction::DUP3
-                << Instruction::DUP5 << Instruction::EXACCOUNTSET;
+                << Instruction::DUP5 << Instruction::EXACCOUNTSET
+                << swapInstruction(3);
 
             utils().popStackSlots(3);
+
+            m_context << Instruction::ISZERO;
+            m_context.appendConditionalRevertDIY(true);
 
             break;
         }
@@ -1339,9 +1343,13 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
             prepareSQLCallMemParams(arguments, parameterTypes);
 
             m_context << Instruction::DUP2 << Instruction::DUP2
-                << Instruction::DUP5 << Instruction::EXTRANSFERRATESET;
+                << Instruction::DUP5 << Instruction::EXTRANSFERRATESET
+                << swapInstruction(3);
 
             utils().popStackSlots(3);
+
+            m_context << Instruction::ISZERO;
+            m_context.appendConditionalRevertDIY(true);
 
             break;
         }
@@ -1357,9 +1365,13 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
 
             m_context << Instruction::DUP2 << Instruction::DUP2
                 << Instruction::DUP6 << Instruction::DUP6
-                << Instruction::DUP9 << Instruction::EXTRANSFERRANGESET;
+                << Instruction::DUP9 << Instruction::EXTRANSFERRANGESET
+                << swapInstruction(5);
 
             utils().popStackSlots(5);
+
+            m_context << Instruction::ISZERO;
+            m_context.appendConditionalRevertDIY(true);
 
             break;
         }
@@ -1381,17 +1393,21 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
             solAssert(argType, "");
             arguments.back()->accept(*this);
 
-            m_context << Instruction::DUP1 
+            m_context << Instruction::DUP1
                 << Instruction::DUP4 << Instruction::DUP4
                 << Instruction::DUP8 << Instruction::DUP8
-                << Instruction::DUP11 << Instruction::EXTRUSTSET;
+                << Instruction::DUP11 << Instruction::EXTRUSTSET
+                << swapInstruction(6);
 
             utils().popStackSlots(6);
+
+            m_context << Instruction::ISZERO;
+            m_context.appendConditionalRevertDIY(true);
 
             break;
         }
         case FunctionType::Kind::TrustLimit:
-        case FunctionType::Kind::GateWayBalance:
+        case FunctionType::Kind::GatewayBalance:
         {
             solAssert(arguments.size() == 2, "argument's size doesn't math parameter");
 
@@ -1412,7 +1428,7 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
             case FunctionType::Kind::TrustLimit:
                 cmd = Instruction::EXTRUSTLIMIT;
                 break;
-            case FunctionType::Kind::GateWayBalance:
+            case FunctionType::Kind::GatewayBalance:
                 cmd = Instruction::EXGATEWAYBALANCE;
                 break;
             default:
@@ -1456,9 +1472,13 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
                 << Instruction::DUP8 << Instruction::DUP8
                 << Instruction::DUP11
                 << Instruction::DUP13
-                << Instruction::EXPAY;
+                << Instruction::EXPAY
+                << swapInstruction(7);
 
             utils().popStackSlots(7);
+
+            m_context << Instruction::ISZERO;
+            m_context.appendConditionalRevertDIY(true);
 
             break;
         }
@@ -1552,7 +1572,7 @@ bool ExpressionCompiler::visit(MemberAccess const& _memberAccess)
                 case FunctionType::Kind::SetTransferRange:
                 case FunctionType::Kind::TrustSet:
                 case FunctionType::Kind::TrustLimit:
-                case FunctionType::Kind::GateWayBalance:
+                case FunctionType::Kind::GatewayBalance:
                 case FunctionType::Kind::Pay:
 					_memberAccess.expression().accept(*this);
 					m_context << funType->externalIdentifier();
@@ -1658,7 +1678,7 @@ bool ExpressionCompiler::visit(MemberAccess const& _memberAccess)
                     "delegatecall", "create", "drop", "rename", "insert", 
                     "deletex", "update", "grant", "get", 
                     "accountSet", "setTransferRate", "setTransferRange",
-                    "trustSet", "trustLimit", "gateWayBalance", "pay"}).count(member)) {
+                    "trustSet", "trustLimit", "gatewayBalance", "pay"}).count(member)) {
 			utils().convertType(
 				*_memberAccess.expression().annotation().type,
 				IntegerType(160, IntegerType::Modifier::Address),

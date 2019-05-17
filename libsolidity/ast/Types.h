@@ -946,7 +946,7 @@ public:
         SetTransferRange,
         TrustSet,
         TrustLimit,
-        GateWayBalance,
+        GatewayBalance,
         Pay,
         /* End Token */
 

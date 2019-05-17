@@ -621,8 +621,8 @@ MemberList::MemberMap IntegerType::nativeMembers(ContractDefinition const*) cons
             { "setTransferRange", make_shared<FunctionType>(strings{ "string memory", "string memory" }, strings(), FunctionType::Kind::SetTransferRange) },
             { "trustSet", make_shared<FunctionType>(strings{ "string memory", "string memory", "address" }, strings(), FunctionType::Kind::TrustSet) },
             { "trustLimit", make_shared<FunctionType>(strings{ "string memory", "address" }, strings{ "int" }, FunctionType::Kind::TrustLimit, false, StateMutability::View) },
-            { "gateWayBalance", make_shared<FunctionType>(strings{ "string memory", "address" }, strings{ "int" }, FunctionType::Kind::GateWayBalance, false, StateMutability::View) },
-            { "pay", make_shared<FunctionType>(strings{ "address", "string memory", "string memory", "address" }, strings(), FunctionType::Kind::Pay, false, StateMutability::Payable) },
+            { "gatewayBalance", make_shared<FunctionType>(strings{ "string memory", "address" }, strings{ "int" }, FunctionType::Kind::GatewayBalance, false, StateMutability::View) },
+            { "pay", make_shared<FunctionType>(strings{ "address", "string memory", "string memory", "address" }, strings(), FunctionType::Kind::Pay) },
 		};
 	else
 		return MemberList::MemberMap();
@@ -2545,7 +2545,7 @@ string FunctionType::richIdentifier() const
     case Kind::SetTransferRange: id += "setTransferRange"; break;
     case Kind::TrustSet: id += "trustSet"; break;
     case Kind::TrustLimit: id += "trustLimit"; break;
-    case Kind::GateWayBalance: id += "gateWayBalance"; break;
+    case Kind::GatewayBalance: id += "gatewayBalance"; break;
     case Kind::Pay: id += "pay"; break;
 	default: solAssert(false, "Unknown function location."); break;
 	}
