@@ -84,6 +84,14 @@ Solidity project uses CMake to configure the build. Building Solidity is quite s
 > make -j2
 ```
 
+Build static linked execute should disable Z3, because Z3 does not provided static lib. The cmake options like below:
+
+```
+> cmake .. -DUSE_CVC4=OFF -DUSE_Z3=OFF -DSOLC_LINK_STATIC=ON
+```
+
+Use cmake option -DCMAKE_BUILD_TYPE=value Choose the type of build, values are: None(CMAKE_CXX_FLAGS or CMAKE_C_FLAGS used) Debug Release RelWithDebInfo MinSizeRel.
+
 And even for Windows: 
 
 ```

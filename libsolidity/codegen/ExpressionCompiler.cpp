@@ -1422,7 +1422,7 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
             solAssert(argType, "");
             arguments.back()->accept(*this);
 
-            Instruction cmd;
+            Instruction cmd = Instruction::EXTRUSTLIMIT;
             switch (function.kind())
             {
             case FunctionType::Kind::TrustLimit:
