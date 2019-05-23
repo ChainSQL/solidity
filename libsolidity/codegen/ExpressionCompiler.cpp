@@ -1409,20 +1409,35 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
         case FunctionType::Kind::TrustLimit:
         case FunctionType::Kind::GatewayBalance:
         {
-            solAssert(arguments.size() == 2, "argument's size doesn't math parameter");
+            solAssert(arguments.size() == 3, "argument's size doesn't math parameter");
 
             /* address */
             _functionCall.expression().accept(*this);
 
+            auto arg = arguments.begin();
+            auto param = parameterTypes.begin();
+
             /* argument (string memory) */
-            copyParamToMemory(*arguments.begin(), *parameterTypes.begin());
+            copyParamToMemory(*arg, *param);
+
+            ++arg;
+            ++param;
+
+            /* argument (uint64) */
+            TypePointer const &argType1 = (*arg)->annotation().type;
+            solAssert(argType1, "");
+            (*arg)->accept(*this);
+            utils().convertType(*argType1, **param, true);
+
+            ++arg;
+            ++param;
 
             /** argument (address) */
-            auto const &argType = arguments.back()->annotation().type;
-            solAssert(argType, "");
-            arguments.back()->accept(*this);
+            auto const &argType2 = (*arg)->annotation().type;
+            solAssert(argType2, "");
+            (*arg)->accept(*this);
 
-            Instruction cmd;
+            Instruction cmd = Instruction::EXTRUSTLIMIT;
             switch (function.kind())
             {
             case FunctionType::Kind::TrustLimit:
@@ -1436,11 +1451,12 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
             }
 
             m_context << Instruction::DUP1
-                << Instruction::DUP4 << Instruction::DUP4
-                << Instruction::DUP7 << cmd
-                << swapInstruction(4);
+                << Instruction::DUP3
+                << Instruction::DUP6 << Instruction::DUP6
+                << Instruction::DUP9 << cmd
+                << swapInstruction(5);
 
-            utils().popStackSlots(4);
+            utils().popStackSlots(5);
 
             break;
         }

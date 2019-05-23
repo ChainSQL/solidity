@@ -620,8 +620,8 @@ MemberList::MemberMap IntegerType::nativeMembers(ContractDefinition const*) cons
             { "setTransferRate", make_shared<FunctionType>(strings{ "string memory"}, strings(), FunctionType::Kind::SetTransferRate) },
             { "setTransferRange", make_shared<FunctionType>(strings{ "string memory", "string memory" }, strings(), FunctionType::Kind::SetTransferRange) },
             { "trustSet", make_shared<FunctionType>(strings{ "string memory", "string memory", "address" }, strings(), FunctionType::Kind::TrustSet) },
-            { "trustLimit", make_shared<FunctionType>(strings{ "string memory", "address" }, strings{ "int" }, FunctionType::Kind::TrustLimit, false, StateMutability::View) },
-            { "gatewayBalance", make_shared<FunctionType>(strings{ "string memory", "address" }, strings{ "int" }, FunctionType::Kind::GatewayBalance, false, StateMutability::View) },
+            { "trustLimit", make_shared<FunctionType>(strings{ "string memory", "uint64", "address" }, strings{ "int" }, FunctionType::Kind::TrustLimit, false, StateMutability::View) },
+            { "gatewayBalance", make_shared<FunctionType>(strings{ "string memory", "uint64", "address" }, strings{ "int" }, FunctionType::Kind::GatewayBalance, false, StateMutability::View) },
             { "pay", make_shared<FunctionType>(strings{ "address", "string memory", "string memory", "address" }, strings(), FunctionType::Kind::Pay) },
 		};
 	else
