@@ -622,7 +622,7 @@ MemberList::MemberMap IntegerType::nativeMembers(ContractDefinition const*) cons
             { "trustSet", make_shared<FunctionType>(strings{ "string memory", "string memory", "address" }, strings(), FunctionType::Kind::TrustSet) },
             { "trustLimit", make_shared<FunctionType>(strings{ "string memory", "uint64", "address" }, strings{ "int" }, FunctionType::Kind::TrustLimit, false, StateMutability::View) },
             { "gatewayBalance", make_shared<FunctionType>(strings{ "string memory", "uint64", "address" }, strings{ "int" }, FunctionType::Kind::GatewayBalance, false, StateMutability::View) },
-            { "pay", make_shared<FunctionType>(strings{ "address", "string memory", "string memory", "address" }, strings(), FunctionType::Kind::Pay) },
+            { "pay", make_shared<FunctionType>(strings{ "address", "string memory", "string memory", "string memory", "address" }, strings(), FunctionType::Kind::Pay) },
 		};
 	else
 		return MemberList::MemberMap();

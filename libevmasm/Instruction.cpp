@@ -359,7 +359,7 @@ static const std::map<Instruction, InstructionInfo> c_instructionInfo =
     { Instruction::EXTRUSTSET,{ "EXTRUSTSET",  0, 6, 1, true, Tier::Zero } },
     { Instruction::EXTRUSTLIMIT,{ "EXTRUSTLIMIT",  0, 5, 1, true, Tier::Zero } },
     { Instruction::EXGATEWAYBALANCE,{ "EXGATEWAYBALANCE",  0, 5, 1, true, Tier::Zero } },
-    { Instruction::EXPAY,{ "EXPAY",  0, 7, 1, true, Tier::Zero } },
+    { Instruction::EXPAY,{ "EXPAY",  0, 9, 1, true, Tier::Zero } },
 	{ Instruction::REVERTDIY,		{ "REVERTDIY",		0, 2, 0, true, Tier::Zero } },
 	{ Instruction::CALL,		{ "CALL",			0, 7, 1, true, Tier::Special } },
 	{ Instruction::CALLCODE,	{ "CALLCODE",		0, 7, 1, true, Tier::Special } },
