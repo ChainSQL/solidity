@@ -1333,29 +1333,9 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
 
             break;
         }
-        case FunctionType::Kind::SetTransferRate: {
-            solAssert(arguments.size() == 1, "argument's size doesn't math parameter");
-
-            /* address */
-            _functionCall.expression().accept(*this);
-
-            /* argument (string memory) */
-            prepareSQLCallMemParams(arguments, parameterTypes);
-
-            m_context << Instruction::DUP2 << Instruction::DUP2
-                << Instruction::DUP5 << Instruction::EXTRANSFERRATESET
-                << swapInstruction(3);
-
-            utils().popStackSlots(3);
-
-            m_context << Instruction::ISZERO;
-            m_context.appendConditionalRevertDIY(true);
-
-            break;
-        }
-        case FunctionType::Kind::SetTransferRange:
+        case FunctionType::Kind::SetTransferFee:
         {
-            solAssert(arguments.size() == 2, "argument's size doesn't math parameter");
+            solAssert(arguments.size() == 3, "argument's size doesn't math parameter");
 
             /* address */
             _functionCall.expression().accept(*this);
@@ -1365,10 +1345,11 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
 
             m_context << Instruction::DUP2 << Instruction::DUP2
                 << Instruction::DUP6 << Instruction::DUP6
-                << Instruction::DUP9 << Instruction::EXTRANSFERRANGESET
-                << swapInstruction(5);
+                << Instruction::DUP10 << Instruction::DUP10
+                << Instruction::DUP13 << Instruction::EXTRANSFERFEESET
+                << swapInstruction(7);
 
-            utils().popStackSlots(5);
+            utils().popStackSlots(7);
 
             m_context << Instruction::ISZERO;
             m_context.appendConditionalRevertDIY(true);
@@ -1588,8 +1569,7 @@ bool ExpressionCompiler::visit(MemberAccess const& _memberAccess)
                 case FunctionType::Kind::DeleteSQL:
                 case FunctionType::Kind::UpdateSQL:
                 case FunctionType::Kind::AccountSet:
-                case FunctionType::Kind::SetTransferRate:
-                case FunctionType::Kind::SetTransferRange:
+                case FunctionType::Kind::SetTransferFee:
                 case FunctionType::Kind::TrustSet:
                 case FunctionType::Kind::TrustLimit:
                 case FunctionType::Kind::GatewayBalance:
@@ -1697,7 +1677,7 @@ bool ExpressionCompiler::visit(MemberAccess const& _memberAccess)
 		else if ((set<string>{"send", "transfer", "call", "callcode", 
                     "delegatecall", "create", "drop", "rename", "insert", 
                     "deletex", "update", "grant", "get", 
-                    "accountSet", "setTransferRate", "setTransferRange",
+                    "accountSet", "setTransferFee", 
                     "trustSet", "trustLimit", "gatewayBalance", "pay"}).count(member)) {
 			utils().convertType(
 				*_memberAccess.expression().annotation().type,

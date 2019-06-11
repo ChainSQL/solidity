@@ -617,8 +617,7 @@ MemberList::MemberMap IntegerType::nativeMembers(ContractDefinition const*) cons
 			{"get", make_shared<FunctionType>(strings{"string memory", "string memory"}, strings{"uint256"}, FunctionType::Kind::GetSQL, false, StateMutability::View)},
 			{"grant", make_shared<FunctionType>(strings{"address", "string memory", "string memory"}, strings(), FunctionType::Kind::GrantSQL)},
             { "accountSet", make_shared<FunctionType>(strings{"uint32", "bool"}, strings(), FunctionType::Kind::AccountSet) },
-            { "setTransferRate", make_shared<FunctionType>(strings{ "string memory"}, strings(), FunctionType::Kind::SetTransferRate) },
-            { "setTransferRange", make_shared<FunctionType>(strings{ "string memory", "string memory" }, strings(), FunctionType::Kind::SetTransferRange) },
+            { "setTransferFee", make_shared<FunctionType>(strings{ "string memory", "string memory", "string memory" }, strings(), FunctionType::Kind::SetTransferFee) },
             { "trustSet", make_shared<FunctionType>(strings{ "string memory", "string memory", "address" }, strings(), FunctionType::Kind::TrustSet) },
             { "trustLimit", make_shared<FunctionType>(strings{ "string memory", "uint64", "address" }, strings{ "int" }, FunctionType::Kind::TrustLimit, false, StateMutability::View) },
             { "gatewayBalance", make_shared<FunctionType>(strings{ "string memory", "uint64", "address" }, strings{ "int" }, FunctionType::Kind::GatewayBalance, false, StateMutability::View) },
@@ -2541,8 +2540,7 @@ string FunctionType::richIdentifier() const
     case Kind::BeginTrans: id += "beginTrans"; break;
     case Kind::CommitTrans: id += "commit"; break;
     case Kind::AccountSet: id += "accountSet"; break;
-    case Kind::SetTransferRate: id += "setTransferRate"; break;
-    case Kind::SetTransferRange: id += "setTransferRange"; break;
+    case Kind::SetTransferFee: id += "setTransferFee"; break;
     case Kind::TrustSet: id += "trustSet"; break;
     case Kind::TrustLimit: id += "trustLimit"; break;
     case Kind::GatewayBalance: id += "gatewayBalance"; break;
