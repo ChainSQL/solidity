@@ -856,7 +856,7 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
 				m_context << Instruction::MULMOD;
 			break;
 		}
-		// case FunctionType::Kind::ECRecover:
+		case FunctionType::Kind::ECRecover:
 		case FunctionType::Kind::SHA256:
 		case FunctionType::Kind::RIPEMD160:
         case FunctionType::Kind::SM3:
@@ -1584,6 +1584,7 @@ bool ExpressionCompiler::visit(MemberAccess const& _memberAccess)
 				case FunctionType::Kind::Log3:
 				case FunctionType::Kind::Log4:
 				case FunctionType::Kind::ECRecover:
+				case FunctionType::Kind::SM3:
 				case FunctionType::Kind::SHA256:
 				case FunctionType::Kind::RIPEMD160:
 				default:
