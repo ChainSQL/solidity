@@ -897,7 +897,7 @@ public:
 		SHA3, ///< SHA3
 		Selfdestruct, ///< SELFDESTRUCT
 		Revert, ///< REVERT
-		ECRecover, ///< CALL to special contract for ecrecover
+		//ECRecover, ///< CALL to special contract for ecrecover //chainsql don't support this func
 		SHA256, ///< CALL to special contract for sha256
 		RIPEMD160, ///< CALL to special contract for ripemd160
 		Log0,
@@ -949,6 +949,10 @@ public:
         GatewayBalance,
         Pay,
         /* End Token */
+
+        /* Begin chainsql preCompileContract */
+        SM3,
+        /* End chainsql preCompileContract */
 
 		RevertDIY,
         

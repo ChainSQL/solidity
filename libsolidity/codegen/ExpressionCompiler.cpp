@@ -856,14 +856,15 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
 				m_context << Instruction::MULMOD;
 			break;
 		}
-		case FunctionType::Kind::ECRecover:
+		// case FunctionType::Kind::ECRecover:
 		case FunctionType::Kind::SHA256:
 		case FunctionType::Kind::RIPEMD160:
+        case FunctionType::Kind::SM3:
 		{
 			_functionCall.expression().accept(*this);
-			static const map<FunctionType::Kind, u256> contractAddresses{{FunctionType::Kind::ECRecover, 1},
-															   {FunctionType::Kind::SHA256, 2},
-															   {FunctionType::Kind::RIPEMD160, 3}};
+			static const map<FunctionType::Kind, u256> contractAddresses{{FunctionType::Kind::SM3, 41},
+															   {FunctionType::Kind::SHA256, 22},
+															   {FunctionType::Kind::RIPEMD160, 23}};
 			m_context << contractAddresses.find(function.kind())->second;
 			for (unsigned i = function.sizeOnStack(); i > 0; --i)
 				m_context << swapInstruction(i);
