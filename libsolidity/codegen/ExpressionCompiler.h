@@ -77,6 +77,12 @@ public:
 	/// Appends code for a Constant State Variable accessor function
 	void appendConstStateVariableAccessor(VariableDeclaration const& _varDecl);
 
+    void copyParamToMemory(const ASTPointer<Expression const> &_arg, 
+            TypePointer &_param);
+    void prepareSQLCallMemParams(
+            std::vector<ASTPointer<Expression const>> const &_arguments, 
+            TypePointers _parameters);
+
 private:
 	bool visit(Conditional const& _condition) override;
 	bool visit(Assignment const& _assignment) override;

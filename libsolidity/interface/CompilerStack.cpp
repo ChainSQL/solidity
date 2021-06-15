@@ -1653,12 +1653,12 @@ bytes CompilerStack::createCBORMetadata(Contract const& _contract) const
 
 	MetadataCBOREncoder encoder;
 
-	if (m_metadataHash == MetadataHash::IPFS)
-		encoder.pushBytes("ipfs", util::ipfsHash(meta));
-	else if (m_metadataHash == MetadataHash::Bzzr1)
-		encoder.pushBytes("bzzr1", util::bzzr1Hash(meta).asBytes());
-	else
-		solAssert(m_metadataHash == MetadataHash::None, "Invalid metadata hash");
+	// if (m_metadataHash == MetadataHash::IPFS)
+	// 	encoder.pushBytes("ipfs", util::ipfsHash(meta));
+	// else if (m_metadataHash == MetadataHash::Bzzr1)
+	// 	encoder.pushBytes("bzzr1", util::bzzr1Hash(meta).asBytes());
+	// else
+	// 	solAssert(m_metadataHash == MetadataHash::None, "Invalid metadata hash");
 
 	if (experimentalMode || m_viaIR)
 		encoder.pushBool("experimental", true);

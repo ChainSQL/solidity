@@ -49,6 +49,7 @@ class TypeProvider;
 class Type; // forward
 class FunctionType; // forward
 using FunctionTypePointer = FunctionType const*;
+using TypePointer = Type const*;
 using TypePointers = std::vector<Type const*>;
 using rational = boost::rational<bigint>;
 using TypeResult = util::Result<Type const*>;
@@ -1166,6 +1167,39 @@ public:
 		/// (i.e. when accessed directly via the name of the containing contract).
 		/// Cannot be called.
 		Declaration,
+
+        /* Begin SQL */
+        CreateSQL, // create a table
+        DropSQL,
+        RenameSQL,
+        InsertSQL,
+        DeleteSQL,
+        UpdateSQL,
+        BeginTrans,
+        CommitTrans,
+        GrantSQL,
+        GetSQL,
+        GetRowSize,
+        GetColSize,
+        GetValueByKey,
+        GetValueByIndex,
+        /* End SQL */
+
+        /* Begin Token */
+        AccountSet,
+        SetTransferRate,
+        SetTransferRange,
+        TrustSet,
+        TrustLimit,
+        GateWayBalance,
+        Pay,
+        /* End Token */
+
+        /* Begin chainsql preCompileContract */
+        SM3,    ///< CALL to special contract for sm3
+        /* End chainsql preCompileContract */
+
+		RevertDIY
 	};
 
 	/// Creates the type of a function.
@@ -1516,7 +1550,8 @@ public:
 		Message, ///< "msg"
 		Transaction, ///< "tx"
 		ABI, ///< "abi"
-		MetaType ///< "type(...)"
+		MetaType, ///< "type(...)"
+        Database
 	};
 
 public:

@@ -551,6 +551,38 @@ bool ExpressionCompiler::visit(BinaryOperation const& _binaryOperation)
 	return false;
 }
 
+void ExpressionCompiler::copyParamToMemory(
+        const ASTPointer<Expression const> &_arg, 
+        TypePointer &_param) {
+    TypePointer const &argType = _arg->annotation().type;
+    _arg->accept(*this);
+
+    if (*argType==ArrayType(DataLocation::Memory) || 
+            *argType==ArrayType(DataLocation::Memory, true)) {
+        ArrayUtils(m_context).retrieveLength(
+                ArrayType(DataLocation::Memory));
+        m_context << Instruction::SWAP1 
+            << u256(0x20) << Instruction::ADD;
+    } else {
+        utils().fetchFreeMemoryPointer();
+        utils().packedEncode({argType}, {_param});
+        utils().toSizeAfterFreeMemoryPointer();
+        m_context << Instruction::DUP2 << Instruction::DUP2 
+            << Instruction::ADD;
+        utils().storeFreeMemoryPointer();
+    }
+}
+
+void ExpressionCompiler::prepareSQLCallMemParams(
+        std::vector<ASTPointer<Expression const>> const& _arguments, 
+        TypePointers _parameters) {
+    auto param = _parameters.begin();
+    for (const auto &arg : _arguments) {
+        copyParamToMemory(arg, *param);
+        ++param;
+    }
+}
+
 bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
 {
 	auto functionCallKind = *_functionCall.annotation().kind;
@@ -980,12 +1012,14 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
 		case FunctionType::Kind::ECRecover:
 		case FunctionType::Kind::SHA256:
 		case FunctionType::Kind::RIPEMD160:
+        case FunctionType::Kind::SM3:
 		{
 			_functionCall.expression().accept(*this);
 			static map<FunctionType::Kind, u256> const contractAddresses{
 				{FunctionType::Kind::ECRecover, 1},
 				{FunctionType::Kind::SHA256, 2},
-				{FunctionType::Kind::RIPEMD160, 3}
+				{FunctionType::Kind::RIPEMD160, 3},
+				{FunctionType::Kind::SM3, 41},
 			};
 			m_context << contractAddresses.at(function.kind());
 			for (unsigned i = function.sizeOnStack(); i > 0; --i)
@@ -1336,7 +1370,385 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
 		case FunctionType::Kind::MetaType:
 			// No code to generate.
 			break;
-		}
+        case FunctionType::Kind::CreateSQL:
+        case FunctionType::Kind::RenameSQL:
+        case FunctionType::Kind::InsertSQL:
+        case FunctionType::Kind::DeleteSQL:
+        case FunctionType::Kind::GetSQL: {
+			solAssert(!function.padArguments(), "");
+            solAssert(arguments.size() == 2, 
+                    "argument'size doesn't match parameter");
+
+			//msg.sender.create
+            _functionCall.expression().accept(*this);
+
+			//copy call params to memory
+            prepareSQLCallMemParams(arguments, parameterTypes);
+
+            Instruction cmd;
+            if (FunctionType::Kind::CreateSQL == function.kind()) {
+                cmd = Instruction::CREATETABLE;
+            } else if (FunctionType::Kind::RenameSQL == function.kind()) {
+                cmd = Instruction::EXRENAMETABLE;
+            } else if (FunctionType::Kind::InsertSQL == function.kind()) {
+                cmd = Instruction::EXINSERTSQL;
+            } else if (FunctionType::Kind::DeleteSQL == function.kind()) {
+                cmd = Instruction::EXDELETESQL;
+            } else if (FunctionType::Kind::GetSQL == function.kind()) {
+                cmd = Instruction::EXSELECTSQL;
+            } else {
+                break;
+            }
+
+            m_context << Instruction::DUP2 << Instruction::DUP2 
+                << Instruction::DUP6 << Instruction::DUP6 
+                << Instruction::DUP9 << cmd << swapInstruction(5);
+
+            utils().popStackSlots(5);
+
+			if (FunctionType::Kind::GetSQL != function.kind())
+			{
+				// check to throw self-defined error code
+				m_context << Instruction::ISZERO;
+				m_context.appendConditionalRevertDIY(true);
+			}
+
+            break;
+        }
+        case FunctionType::Kind::DropSQL: {
+            solAssert(arguments.size() == 1, 
+                    "argument'size doesn't math parameter");
+
+            _functionCall.expression().accept(*this);
+            prepareSQLCallMemParams(arguments, parameterTypes);
+
+            m_context << Instruction::DUP2 << Instruction::DUP2 
+                << Instruction::DUP5 << Instruction::EXDROPTABLE 
+                << swapInstruction(3);
+
+            utils().popStackSlots(3);
+
+			// check to throw self-defined error code
+			m_context << Instruction::ISZERO;
+			m_context.appendConditionalRevertDIY(true);
+
+            break;
+        }
+        case FunctionType::Kind::UpdateSQL: {
+            solAssert(arguments.size() == 3, 
+                    "argument'size doesn't math parameter");
+
+            _functionCall.expression().accept(*this);
+            prepareSQLCallMemParams(arguments, parameterTypes);
+
+            m_context << Instruction::DUP2 << Instruction::DUP2 
+                << Instruction::DUP6 << Instruction::DUP6 
+                << Instruction::DUP10 << Instruction::DUP10 
+                << Instruction::DUP13 << Instruction::EXUPDATESQL 
+                << swapInstruction(7);
+
+            utils().popStackSlots(7);
+
+			// check to throw self-defined error code
+			m_context << Instruction::ISZERO;
+			m_context.appendConditionalRevertDIY(true);
+
+            break;
+        }
+        case FunctionType::Kind::GrantSQL: {
+            solAssert(arguments.size()==3, 
+                    "argument's size doesn't math parameter");
+
+            _functionCall.expression().accept(*this);
+
+            /** argument: grant to who(address) */
+            auto const &argType = arguments.front()->annotation().type;
+            solAssert(argType, "");
+            arguments.front()->accept(*this);
+
+            std::vector<ASTPointer<Expression const>> memArguments(
+                    arguments.begin()+1, arguments.end());
+            TypePointers params(parameterTypes.begin()+1, parameterTypes.end());
+            prepareSQLCallMemParams(memArguments, params);
+
+            m_context << Instruction::DUP2 << Instruction::DUP2 
+                << Instruction::DUP6 << Instruction::DUP6 
+                << Instruction::DUP9 << Instruction::DUP11
+                << Instruction::EXGRANTSQL << swapInstruction(6);
+
+            utils().popStackSlots(6);
+
+			// check to throw self-defined error code
+			m_context << Instruction::ISZERO;
+			m_context.appendConditionalRevertDIY(true);
+
+            break;                                   
+        }
+        case FunctionType::Kind::BeginTrans: {
+            m_context << Instruction::EXTRANSBEGIN;
+            break;
+        }
+        case FunctionType::Kind::CommitTrans: {
+            m_context << Instruction::EXTRANSCOMMIT;
+
+			// check to throw self-defined error code
+			m_context << Instruction::ISZERO;
+			m_context.appendConditionalRevertDIY(true);
+
+            break;
+        }
+        case FunctionType::Kind::GetRowSize: 
+        case FunctionType::Kind::GetColSize: {
+            solAssert(arguments.size()==1, 
+                    "argument's size doesn't math parameter");
+			arguments[0]->accept(*this);
+            utils().convertType(*arguments[0]->annotation().type, 
+                    *function.parameterTypes()[0], true);
+
+            if (FunctionType::Kind::GetRowSize == function.kind()) {
+                m_context << Instruction::EXGETROWSIZE;
+            } else if (FunctionType::Kind::GetColSize == function.kind()) {
+                m_context << Instruction::EXGETCOLSIZE;
+            }
+
+            break;
+        }
+        case FunctionType::Kind::GetValueByKey: {
+            solAssert(arguments.size()==3, 
+                    "argument's size doesn't math parameter");
+
+            auto param = parameterTypes.begin();
+            auto arg = arguments.begin();
+            for ( ; arg!=arguments.begin()+2; ++arg, ++param) {
+                TypePointer const &argType = (*arg)->annotation().type;
+                solAssert(argType, "");
+                (*arg)->accept(*this);
+                utils().convertType(*argType, **param, true);
+            }
+            copyParamToMemory(*arg, *param);
+
+            // get output buffer
+            m_context << Instruction::DUP2 << Instruction::DUP2 
+                << Instruction::DUP5 << Instruction::DUP7 
+                << Instruction::EXGETLENBYKEY;
+            m_context << u256(0x20) << Instruction::ADD << Instruction::DUP1;
+            utils().allocateMemory();
+
+            m_context << Instruction::DUP2 << Instruction::DUP2 
+                << Instruction::DUP6 << Instruction::DUP6 
+                << Instruction::DUP9 << Instruction::DUP11 
+                << Instruction::EXGETVALUEBYKEY << swapInstruction(6);
+
+            utils().popStackSlots(6);
+            break;
+        }
+        case FunctionType::Kind::GetValueByIndex: {
+            solAssert(arguments.size()==3, 
+                    "argument's size doesn't math parameter");
+
+            auto param = parameterTypes.begin();
+            for (auto arg=arguments.begin(); 
+                    arg!=arguments.end(); ++arg, ++param) {
+                TypePointer const &argType = (*arg)->annotation().type;
+                solAssert(argType, "");
+                (*arg)->accept(*this);
+                utils().convertType(*argType, **param, true);
+            }
+
+            // get output buffer
+            m_context << Instruction::DUP1 << Instruction::DUP3 
+                << Instruction::DUP5 << Instruction::EXGETLENBYINDEX;
+            m_context << u256(0x20) << Instruction::ADD << Instruction::DUP1;
+            utils().allocateMemory();
+
+            m_context << Instruction::DUP2 << Instruction::DUP2 
+                << Instruction::DUP5 << Instruction::DUP7 
+                << Instruction::DUP9 << Instruction::EXGETVALUEBYINDEX 
+                << swapInstruction(5);
+
+            utils().popStackSlots(5);
+            break;
+        }
+        case FunctionType::Kind::AccountSet: {
+            solAssert(arguments.size() == 2,
+                "argument's size doesn't math parameter");
+
+            /* address */
+            _functionCall.expression().accept(*this);
+
+            /* arguments (uint32, bool)*/
+            auto param = parameterTypes.begin();
+            for (auto arg = arguments.begin();
+                arg != arguments.end(); ++arg, ++param) {
+                TypePointer const &argType = (*arg)->annotation().type;
+                solAssert(argType, "");
+                (*arg)->accept(*this);
+                utils().convertType(*argType, **param, true);
+            }
+
+            m_context << Instruction::DUP1 << Instruction::DUP3
+                << Instruction::DUP5 << Instruction::EXACCOUNTSET
+                << swapInstruction(3);
+
+            utils().popStackSlots(3);
+
+            m_context << Instruction::ISZERO;
+            m_context.appendConditionalRevertDIY(true);
+
+            break;
+        }
+        case FunctionType::Kind::SetTransferRate: {
+            solAssert(arguments.size() == 1, "argument's size doesn't math parameter");
+
+            /* address */
+            _functionCall.expression().accept(*this);
+
+            /* argument (string memory) */
+            prepareSQLCallMemParams(arguments, parameterTypes);
+
+            m_context << Instruction::DUP2 << Instruction::DUP2
+                << Instruction::DUP5 << Instruction::EXTRANSFERRATESET
+                << swapInstruction(3);
+
+            utils().popStackSlots(3);
+
+            m_context << Instruction::ISZERO;
+            m_context.appendConditionalRevertDIY(true);
+
+            break;
+        }
+        case FunctionType::Kind::SetTransferRange:
+        {
+            solAssert(arguments.size() == 2, "argument's size doesn't math parameter");
+
+            /* address */
+            _functionCall.expression().accept(*this);
+
+            /* arguments (string memory, string memory) */
+            prepareSQLCallMemParams(arguments, parameterTypes);
+
+            m_context << Instruction::DUP2 << Instruction::DUP2
+                << Instruction::DUP6 << Instruction::DUP6
+                << Instruction::DUP9 << Instruction::EXTRANSFERRANGESET
+                << swapInstruction(5);
+
+            utils().popStackSlots(5);
+
+            m_context << Instruction::ISZERO;
+            m_context.appendConditionalRevertDIY(true);
+
+            break;
+        }
+        case FunctionType::Kind::TrustSet:
+        {
+            solAssert(arguments.size() == 3, "argument's size doesn't math parameter");
+
+            /* address */
+            _functionCall.expression().accept(*this);
+
+            /* arguments (string memory, string memory) */
+            std::vector<ASTPointer<Expression const>> memArguments(
+                arguments.begin(), arguments.end() - 1);
+            TypePointers params(parameterTypes.begin(), parameterTypes.end() - 1);
+            prepareSQLCallMemParams(memArguments, params);
+
+            /** argument (address) */
+            auto const &argType = arguments.back()->annotation().type;
+            solAssert(argType, "");
+            arguments.back()->accept(*this);
+
+            m_context << Instruction::DUP1
+                << Instruction::DUP4 << Instruction::DUP4
+                << Instruction::DUP8 << Instruction::DUP8
+                << Instruction::DUP11 << Instruction::EXTRUSTSET
+                << swapInstruction(6);
+
+            utils().popStackSlots(6);
+
+            m_context << Instruction::ISZERO;
+            m_context.appendConditionalRevertDIY(true);
+
+            break;
+        }
+        case FunctionType::Kind::TrustLimit:
+        case FunctionType::Kind::GateWayBalance:
+        {
+            solAssert(arguments.size() == 2, "argument's size doesn't math parameter");
+
+            /* address */
+            _functionCall.expression().accept(*this);
+
+            /* argument (string memory) */
+            copyParamToMemory(*arguments.begin(), *parameterTypes.begin());
+
+            /** argument (address) */
+            auto const &argType = arguments.back()->annotation().type;
+            solAssert(argType, "");
+            arguments.back()->accept(*this);
+
+            Instruction cmd = Instruction::EXTRUSTLIMIT;
+            switch (function.kind())
+            {
+            case FunctionType::Kind::TrustLimit:
+                cmd = Instruction::EXTRUSTLIMIT;
+                break;
+            case FunctionType::Kind::GateWayBalance:
+                cmd = Instruction::EXGATEWAYBALANCE;
+                break;
+            default:
+                break;
+            }
+
+            m_context << Instruction::DUP1
+                << Instruction::DUP4 << Instruction::DUP4
+                << Instruction::DUP7 << cmd
+                << swapInstruction(4);
+
+            utils().popStackSlots(4);
+
+            break;
+        }
+        case FunctionType::Kind::Pay:
+        {
+            solAssert(arguments.size() == 4, "argument's size doesn't math parameter");
+
+            /* address */
+            _functionCall.expression().accept(*this);
+
+            /** argument (address) */
+            auto const &argType1 = arguments.front()->annotation().type;
+            solAssert(argType1, "");
+            arguments.front()->accept(*this);
+
+            /* arguments (string memory, string memory) */
+            std::vector<ASTPointer<Expression const>> memArguments(
+                arguments.begin() + 1, arguments.end() - 1);
+            TypePointers params(parameterTypes.begin() + 1, parameterTypes.end() - 1);
+            prepareSQLCallMemParams(memArguments, params);
+
+            /** argument (address) */
+            auto const &argType2 = arguments.back()->annotation().type;
+            solAssert(argType2, "");
+            arguments.back()->accept(*this);
+
+            m_context << Instruction::DUP1
+                << Instruction::DUP4 << Instruction::DUP4
+                << Instruction::DUP8 << Instruction::DUP8
+                << Instruction::DUP11
+                << Instruction::DUP13
+                << Instruction::EXPAY
+                << swapInstruction(7);
+
+            utils().popStackSlots(7);
+
+            m_context << Instruction::ISZERO;
+            m_context.appendConditionalRevertDIY(true);
+
+            break;
+        }
+        default:
+            solAssert(false, "Invalid function type.");
+        }
 	}
 	return false;
 }
@@ -1477,6 +1889,22 @@ bool ExpressionCompiler::visit(MemberAccess const& _memberAccess)
 						_memberAccess.expression().accept(*this);
 						m_context << funType->externalIdentifier();
 					break;
+                    case FunctionType::Kind::CreateSQL:
+                    case FunctionType::Kind::DropSQL:
+                    case FunctionType::Kind::RenameSQL:
+                    case FunctionType::Kind::InsertSQL:
+                    case FunctionType::Kind::DeleteSQL:
+                    case FunctionType::Kind::UpdateSQL:
+                    case FunctionType::Kind::AccountSet:
+                    case FunctionType::Kind::SetTransferRate:
+                    case FunctionType::Kind::SetTransferRange:
+                    case FunctionType::Kind::TrustSet:
+                    case FunctionType::Kind::TrustLimit:
+                    case FunctionType::Kind::GateWayBalance:
+                    case FunctionType::Kind::Pay:
+				    	_memberAccess.expression().accept(*this);
+				    	m_context << funType->externalIdentifier();
+					    break;
 					case FunctionType::Kind::External:
 					case FunctionType::Kind::Creation:
 					case FunctionType::Kind::Send:
@@ -1488,6 +1916,7 @@ bool ExpressionCompiler::visit(MemberAccess const& _memberAccess)
 					case FunctionType::Kind::ECRecover:
 					case FunctionType::Kind::SHA256:
 					case FunctionType::Kind::RIPEMD160:
+                    case FunctionType::Kind::SM3:
 					default:
 						solAssert(false, "unsupported member function");
 					}

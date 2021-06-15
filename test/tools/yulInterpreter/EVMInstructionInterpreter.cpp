@@ -411,6 +411,31 @@ u256 EVMInstructionInterpreter::eval(
 	case Instruction::SWAP14:
 	case Instruction::SWAP15:
 	case Instruction::SWAP16:
+    case Instruction::CREATETABLE:
+    case Instruction::EXDROPTABLE:
+    case Instruction::EXRENAMETABLE:
+    case Instruction::EXINSERTSQL:
+    case Instruction::EXDELETESQL:
+    case Instruction::EXUPDATESQL:
+    case Instruction::EXSELECTSQL:
+    case Instruction::EXGRANTSQL:
+    case Instruction::EXTRANSBEGIN:
+    case Instruction::EXTRANSCOMMIT:
+    case Instruction::EXGETROWSIZE:
+    case Instruction::EXGETCOLSIZE:
+    case Instruction::EXGETVALUEBYKEY:
+    case Instruction::EXGETVALUEBYINDEX:
+    case Instruction::EXEXITFUNC:
+    case Instruction::EXGETLENBYKEY:
+    case Instruction::EXGETLENBYINDEX:
+    case Instruction::EXACCOUNTSET:
+    case Instruction::EXTRANSFERRATESET:
+    case Instruction::EXTRANSFERRANGESET:
+    case Instruction::EXTRUSTSET:
+    case Instruction::EXTRUSTLIMIT:
+    case Instruction::EXGATEWAYBALANCE:
+    case Instruction::EXPAY:
+	case Instruction::REVERTDIY:
 	{
 		yulAssert(false, "");
 		return 0;

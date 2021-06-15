@@ -33,8 +33,8 @@ if test -z "$1"; then
 else
     BUILD_DIR="$1"
 fi
-
+WORKSPACE=`pwd`
 # solbuildpackpusher/solidity-buildpack-deps:emscripten-4
-docker run -v "$(pwd):/root/project" -w /root/project \
+docker run -v "$(pwd):$WORKSPACE" -w $WORKSPACE \
     solbuildpackpusher/solidity-buildpack-deps@sha256:434719d8104cab47712dd1f56f255994d04eb65b802c0d382790071c1a0c074b \
     ./scripts/ci/build_emscripten.sh "$BUILD_DIR"

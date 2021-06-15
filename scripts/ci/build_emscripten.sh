@@ -40,7 +40,7 @@ else
 	BUILD_DIR="$1"
 fi
 
-WORKSPACE=/root/project
+WORKSPACE=`pwd`
 
 cd $WORKSPACE
 

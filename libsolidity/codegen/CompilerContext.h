@@ -207,6 +207,7 @@ public:
 	/// the data.
 	/// @param _message is an optional revert message used in debug mode
 	CompilerContext& appendConditionalRevert(bool _forwardReturnData = false, std::string const& _message = "");
+    CompilerContext& appendConditionalRevertDIY(bool _forwardReturnData = false);
 	/// Appends a JUMP to a specific tag
 	CompilerContext& appendJumpTo(
 		evmasm::AssemblyItem const& _tag,

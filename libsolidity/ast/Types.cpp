@@ -474,7 +474,22 @@ MemberList::MemberMap AddressType::nativeMembers(ASTNode const*) const
 		{"call", TypeProvider::function(strings{"bytes memory"}, strings{"bool", "bytes memory"}, FunctionType::Kind::BareCall, false, StateMutability::Payable)},
 		{"callcode", TypeProvider::function(strings{"bytes memory"}, strings{"bool", "bytes memory"}, FunctionType::Kind::BareCallCode, false, StateMutability::Payable)},
 		{"delegatecall", TypeProvider::function(strings{"bytes memory"}, strings{"bool", "bytes memory"}, FunctionType::Kind::BareDelegateCall, false, StateMutability::NonPayable)},
-		{"staticcall", TypeProvider::function(strings{"bytes memory"}, strings{"bool", "bytes memory"}, FunctionType::Kind::BareStaticCall, false, StateMutability::View)}
+		{"staticcall", TypeProvider::function(strings{"bytes memory"}, strings{"bool", "bytes memory"}, FunctionType::Kind::BareStaticCall, false, StateMutability::View)},
+		{"create", TypeProvider::function(strings{"string memory", "string memory"}, strings(), FunctionType::Kind::CreateSQL)},
+		{"drop", TypeProvider::function(strings{"string memory"}, strings(), FunctionType::Kind::DropSQL)},
+		{"rename", TypeProvider::function(strings{"string memory", "string memory"}, strings(), FunctionType::Kind::RenameSQL)},
+		{"insert", TypeProvider::function(strings{"string memory", "string memory"}, strings(), FunctionType::Kind::InsertSQL)},
+		{"deletex", TypeProvider::function(strings{"string memory", "string memory"}, strings(), FunctionType::Kind::DeleteSQL)},
+		{"update", TypeProvider::function(strings{"string memory", "string memory", "string memory"}, strings(), FunctionType::Kind::UpdateSQL)},
+		{"get", TypeProvider::function(strings{"string memory", "string memory"}, strings{"uint256"}, FunctionType::Kind::GetSQL, false, StateMutability::View)},
+		{"grant", TypeProvider::function(strings{"address", "string memory", "string memory"}, strings(), FunctionType::Kind::GrantSQL)},
+        { "accountSet", TypeProvider::function(strings{"uint32", "bool"}, strings(), FunctionType::Kind::AccountSet) },
+        { "setTransferRate", TypeProvider::function(strings{ "string memory"}, strings(), FunctionType::Kind::SetTransferRate) },
+        { "setTransferRange", TypeProvider::function(strings{ "string memory", "string memory" }, strings(), FunctionType::Kind::SetTransferRange) },
+        { "trustSet", TypeProvider::function(strings{ "string memory", "string memory", "address" }, strings(), FunctionType::Kind::TrustSet) },
+        { "trustLimit", TypeProvider::function(strings{ "string memory", "address" }, strings{ "int" }, FunctionType::Kind::TrustLimit, false, StateMutability::View) },
+        { "gatewayBalance", TypeProvider::function(strings{ "string memory", "address" }, strings{ "int" }, FunctionType::Kind::GateWayBalance, false, StateMutability::View) },
+        { "pay", TypeProvider::function(strings{ "address", "string memory", "string memory", "address" }, strings(), FunctionType::Kind::Pay) }
 	};
 	if (m_stateMutability == StateMutability::Payable)
 	{
@@ -2878,8 +2893,10 @@ string FunctionType::richIdentifier() const
 	case Kind::KECCAK256: id += "keccak256"; break;
 	case Kind::Selfdestruct: id += "selfdestruct"; break;
 	case Kind::Revert: id += "revert"; break;
+	case Kind::RevertDIY: id += "revertdiy"; break;
 	case Kind::ECRecover: id += "ecrecover"; break;
 	case Kind::SHA256: id += "sha256"; break;
+    case Kind::SM3: id += "sm3"; break;
 	case Kind::RIPEMD160: id += "ripemd160"; break;
 	case Kind::GasLeft: id += "gasleft"; break;
 	case Kind::Event: id += "event"; break;
@@ -2901,6 +2918,27 @@ string FunctionType::richIdentifier() const
 	case Kind::ABIEncodeWithSignature: id += "abiencodewithsignature"; break;
 	case Kind::ABIDecode: id += "abidecode"; break;
 	case Kind::MetaType: id += "metatype"; break;
+	case Kind::CreateSQL: id += "create"; break;
+    case Kind::DropSQL: id += "drop"; break;
+    case Kind::RenameSQL: id += "rename"; break;
+    case Kind::InsertSQL: id += "insert"; break;
+    case Kind::DeleteSQL: id += "deletex"; break;
+    case Kind::UpdateSQL: id += "update"; break;
+    case Kind::GetSQL: id += "get"; break;
+    case Kind::GrantSQL: id += "grant"; break;
+    case Kind::GetRowSize: id += "getRowSize"; break;
+    case Kind::GetColSize: id += "getColSize"; break;
+    case Kind::GetValueByKey: id += "getValueByKey"; break;
+    case Kind::GetValueByIndex: id += "getValueByIndex"; break;
+    case Kind::BeginTrans: id += "beginTrans"; break;
+    case Kind::CommitTrans: id += "commit"; break;
+    case Kind::AccountSet: id += "accountSet"; break;
+    case Kind::SetTransferRate: id += "setTransferRate"; break;
+    case Kind::SetTransferRange: id += "setTransferRange"; break;
+    case Kind::TrustSet: id += "trustSet"; break;
+    case Kind::TrustLimit: id += "trustLimit"; break;
+    case Kind::GateWayBalance: id += "gatewayBalance"; break;
+    case Kind::Pay: id += "pay"; break;
 	}
 	id += "_" + stateMutabilityToString(m_stateMutability);
 	id += identifierList(m_parameterTypes) + "returns" + identifierList(m_returnParameterTypes);
@@ -3593,6 +3631,14 @@ bool FunctionType::padArguments() const
 	case Kind::RIPEMD160:
 	case Kind::KECCAK256:
 	case Kind::ABIEncodePacked:
+    case Kind::CreateSQL:
+    case Kind::DropSQL:
+    case Kind::RenameSQL:
+    case Kind::InsertSQL:
+    case Kind::DeleteSQL:
+    case Kind::UpdateSQL:
+    case Kind::GrantSQL:
+    case Kind::GetSQL:
 		return false;
 	default:
 		return true;
@@ -3865,6 +3911,8 @@ string MagicType::richIdentifier() const
 		return "t_magic_transaction";
 	case Kind::ABI:
 		return "t_magic_abi";
+    case Kind::Database:
+        return "t_magic_database";
 	case Kind::MetaType:
 		solAssert(m_typeArgument, "");
 		return "t_magic_meta_type_" + m_typeArgument->richIdentifier();
@@ -3955,6 +4003,41 @@ MemberList::MemberMap MagicType::nativeMembers(ASTNode const*) const
 				StateMutability::Pure
 			)}
 		});
+	case Kind::Database:
+		return MemberList::MemberMap({
+            {"getRowSize", TypeProvider::function(
+                strings{"uint256"}, 
+                strings{"uint"},
+                FunctionType::Kind::GetRowSize,
+                false, 
+                StateMutability::View)},
+            {"getColSize", TypeProvider::function(
+                strings{"uint256"}, 
+                strings{"uint"},
+                FunctionType::Kind::GetColSize,
+                false, 
+                StateMutability::View)},
+            {"getValueByKey", TypeProvider::function(
+                strings{"uint256", "uint", "string memory"}, 
+                strings{"string memory"},
+                FunctionType::Kind::GetValueByKey, 
+                false,
+                StateMutability::View)},
+            {"getValueByIndex", TypeProvider::function(
+                strings{"uint256", "uint", "uint"},
+                strings{"string memory"}, 
+                FunctionType::Kind::GetValueByIndex,
+                false, 
+                StateMutability::View)},
+            {"beginTrans", TypeProvider::function(
+                strings{},
+                strings{}, 
+                FunctionType::Kind::BeginTrans)}, 
+            {"commit", TypeProvider::function(
+                strings{},
+                strings(),
+                FunctionType::Kind::CommitTrans)}
+		});
 	case Kind::MetaType:
 	{
 		solAssert(
@@ -4006,6 +4089,8 @@ string MagicType::toString(bool _short) const
 		return "tx";
 	case Kind::ABI:
 		return "abi";
+    case Kind::Database:
+        return "db";
 	case Kind::MetaType:
 		solAssert(m_typeArgument, "");
 		return "type(" + m_typeArgument->toString(_short) + ")";

@@ -175,6 +175,35 @@ enum class Instruction: uint8_t
 	LOG3,				///< Makes a log entry; 3 topics.
 	LOG4,				///< Makes a log entry; 4 topics.
 
+    CREATETABLE = 0xc0,  // self-extention intructions
+    EXDROPTABLE,
+    EXRENAMETABLE,
+    EXINSERTSQL,
+    EXDELETESQL,
+    EXUPDATESQL,
+    EXSELECTSQL,
+    EXGRANTSQL,
+    EXTRANSBEGIN,
+    EXTRANSCOMMIT,
+    EXGETROWSIZE,
+    EXGETCOLSIZE,
+    EXGETVALUEBYKEY,
+    EXGETVALUEBYINDEX,
+    EXEXITFUNC,
+    EXGETLENBYKEY,
+    EXGETLENBYINDEX = 0xd0,
+
+    EXACCOUNTSET,
+    EXTRANSFERRATESET,
+    EXTRANSFERRANGESET,
+    EXTRUSTSET,
+    EXTRUSTLIMIT,
+    EXGATEWAYBALANCE,
+    EXPAY,
+
+	REVERTDIY,
+    /** NOTE: maximum value is 0xef */
+
 	CREATE = 0xf0,		///< create a new account with associated code
 	CALL,				///< message-call into an account
 	CALLCODE,			///< message-call with another account's code only

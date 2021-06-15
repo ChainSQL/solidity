@@ -81,6 +81,7 @@ GasMeter::GasConsumption GasMeter::estimateMax(AssemblyItem const& _item, bool _
 			break;
 		case Instruction::RETURN:
 		case Instruction::REVERT:
+		case Instruction::REVERTDIY:
 			gas = runGas(_item.instruction());
 			gas += memoryGas(0, -1);
 			break;
