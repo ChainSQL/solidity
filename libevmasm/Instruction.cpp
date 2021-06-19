@@ -187,17 +187,16 @@ std::map<std::string, Instruction> const solidity::evmasm::c_instructions =
 	{ "EXGETLENBYINDEX", Instruction::EXGETLENBYINDEX},
     /* End SQL instruction */
 
+    { "REVERTDIY", Instruction::REVERTDIY},
+
     /* Begin Token instruction */
     { "EXACCOUNTSET", Instruction::EXACCOUNTSET },
-    { "EXTRANSFERRATESET", Instruction::EXTRANSFERRATESET },
-    { "EXTRANSFERRANGESET", Instruction::EXTRANSFERRANGESET },
+    { "EXTRANSFERFEESET", Instruction::EXTRANSFERFEESET },
     { "EXTRUSTSET", Instruction::EXTRUSTSET },
     { "EXTRUSTLIMIT", Instruction::EXTRUSTLIMIT },
     { "EXGATEWAYBALANCE", Instruction::EXGATEWAYBALANCE },
     { "EXPAY", Instruction::EXPAY },
     /* End Token instructtion */
-
-	{ "REVERTDIY", Instruction::REVERTDIY},
 
 	{ "CALL", Instruction::CALL },
 	{ "CALLCODE", Instruction::CALLCODE },
@@ -359,17 +358,16 @@ static std::map<Instruction, InstructionInfo> const c_instructionInfo =
 	{ Instruction::EXGETCOLSIZE,    { "EXGETCOLSIZE",   0, 1, 1, true, Tier::Zero} },
 	{ Instruction::EXGETVALUEBYKEY, { "EXGETVALUEBYKEY",    0, 6, 1, true, Tier::Zero} },
 	{ Instruction::EXGETVALUEBYINDEX,   { "EXGETVALUEBYINDEX",  0, 5, 1, true, Tier::Zero} },
+    { Instruction::REVERTDIY,		{ "REVERTDIY",		0, 2, 0, true, Tier::Zero } },
 	{ Instruction::EXEXITFUNC,   { "EXEXITFUNC",  0, 0, 0, true, Tier::Zero} },
 	{ Instruction::EXGETLENBYKEY,   { "EXGETLENBYKEY",  0, 4, 1, true, Tier::Zero} },
 	{ Instruction::EXGETLENBYINDEX, { "EXGETLENBYINDEX",0, 3, 1, true, Tier::Zero} },
     { Instruction::EXACCOUNTSET, { "EXACCOUNTSET",  0, 3, 1, true, Tier::Zero } },
-    { Instruction::EXTRANSFERRATESET,{ "EXTRANSFERRATESET",  0, 3, 1, true, Tier::Zero } },
-    { Instruction::EXTRANSFERRANGESET,{ "EXTRANSFERRANGESET",  0, 5, 1, true, Tier::Zero } },
+    { Instruction::EXTRANSFERFEESET,{ "EXTRANSFERFEESET",  0, 7, 1, true, Tier::Zero } },
     { Instruction::EXTRUSTSET,{ "EXTRUSTSET",  0, 6, 1, true, Tier::Zero } },
-    { Instruction::EXTRUSTLIMIT,{ "EXTRUSTLIMIT",  0, 4, 1, true, Tier::Zero } },
-    { Instruction::EXGATEWAYBALANCE,{ "EXGATEWAYBALANCE",  0, 4, 1, true, Tier::Zero } },
-    { Instruction::EXPAY,{ "EXPAY",  0, 7, 1, true, Tier::Zero } },
-	{ Instruction::REVERTDIY,		{ "REVERTDIY",		0, 2, 0, true, Tier::Zero } },
+    { Instruction::EXTRUSTLIMIT,{ "EXTRUSTLIMIT",  0, 5, 1, true, Tier::Zero } },
+    { Instruction::EXGATEWAYBALANCE,{ "EXGATEWAYBALANCE",  0, 5, 1, true, Tier::Zero } },
+    { Instruction::EXPAY,{ "EXPAY",  0, 9, 1, true, Tier::Zero } },
 	{ Instruction::CALL,		{ "CALL",			0, 7, 1, true, Tier::Special } },
 	{ Instruction::CALLCODE,	{ "CALLCODE",		0, 7, 1, true, Tier::Special } },
 	{ Instruction::RETURN,		{ "RETURN",			0, 2, 0, true, Tier::Zero } },

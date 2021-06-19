@@ -484,12 +484,11 @@ MemberList::MemberMap AddressType::nativeMembers(ASTNode const*) const
 		{"get", TypeProvider::function(strings{"string memory", "string memory"}, strings{"uint256"}, FunctionType::Kind::GetSQL, false, StateMutability::View)},
 		{"grant", TypeProvider::function(strings{"address", "string memory", "string memory"}, strings(), FunctionType::Kind::GrantSQL)},
         { "accountSet", TypeProvider::function(strings{"uint32", "bool"}, strings(), FunctionType::Kind::AccountSet) },
-        { "setTransferRate", TypeProvider::function(strings{ "string memory"}, strings(), FunctionType::Kind::SetTransferRate) },
-        { "setTransferRange", TypeProvider::function(strings{ "string memory", "string memory" }, strings(), FunctionType::Kind::SetTransferRange) },
+        { "setTransferFee", TypeProvider::function(strings{ "string memory", "string memory", "string memory" }, strings(), FunctionType::Kind::SetTransferFee) },
         { "trustSet", TypeProvider::function(strings{ "string memory", "string memory", "address" }, strings(), FunctionType::Kind::TrustSet) },
-        { "trustLimit", TypeProvider::function(strings{ "string memory", "address" }, strings{ "int" }, FunctionType::Kind::TrustLimit, false, StateMutability::View) },
-        { "gatewayBalance", TypeProvider::function(strings{ "string memory", "address" }, strings{ "int" }, FunctionType::Kind::GateWayBalance, false, StateMutability::View) },
-        { "pay", TypeProvider::function(strings{ "address", "string memory", "string memory", "address" }, strings(), FunctionType::Kind::Pay) }
+        { "trustLimit", TypeProvider::function(strings{ "string memory", "uint64", "address" }, strings{ "int" }, FunctionType::Kind::TrustLimit, false, StateMutability::View) },
+        { "gatewayBalance", TypeProvider::function(strings{ "string memory", "uint64", "address" }, strings{ "int" }, FunctionType::Kind::GateWayBalance, false, StateMutability::View) },
+        { "pay", TypeProvider::function(strings{ "address", "string memory", "string memory", "string memory", "address" }, strings(), FunctionType::Kind::Pay) }
 	};
 	if (m_stateMutability == StateMutability::Payable)
 	{
@@ -2933,8 +2932,7 @@ string FunctionType::richIdentifier() const
     case Kind::BeginTrans: id += "beginTrans"; break;
     case Kind::CommitTrans: id += "commit"; break;
     case Kind::AccountSet: id += "accountSet"; break;
-    case Kind::SetTransferRate: id += "setTransferRate"; break;
-    case Kind::SetTransferRange: id += "setTransferRange"; break;
+    case Kind::SetTransferFee: id += "setTransferFee"; break;
     case Kind::TrustSet: id += "trustSet"; break;
     case Kind::TrustLimit: id += "trustLimit"; break;
     case Kind::GateWayBalance: id += "gatewayBalance"; break;
@@ -3434,6 +3432,7 @@ bool FunctionType::isBareCall() const
 	case Kind::ECRecover:
 	case Kind::SHA256:
 	case Kind::RIPEMD160:
+    case Kind::SM3:
 		return true;
 	default:
 		return false;
@@ -3497,6 +3496,7 @@ bool FunctionType::isPure() const
 		m_kind == Kind::ECRecover ||
 		m_kind == Kind::SHA256 ||
 		m_kind == Kind::RIPEMD160 ||
+        m_kind == Kind::SM3 ||
 		m_kind == Kind::AddMod ||
 		m_kind == Kind::MulMod ||
 		m_kind == Kind::ObjectCreation ||
@@ -3629,6 +3629,7 @@ bool FunctionType::padArguments() const
 	case Kind::BareStaticCall:
 	case Kind::SHA256:
 	case Kind::RIPEMD160:
+    case Kind::SM3:
 	case Kind::KECCAK256:
 	case Kind::ABIEncodePacked:
     case Kind::CreateSQL:

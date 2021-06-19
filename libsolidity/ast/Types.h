@@ -1187,8 +1187,7 @@ public:
 
         /* Begin Token */
         AccountSet,
-        SetTransferRate,
-        SetTransferRange,
+        SetTransferFee,
         TrustSet,
         TrustLimit,
         GateWayBalance,
@@ -1371,6 +1370,7 @@ public:
 		case FunctionType::Kind::KECCAK256:
 		case FunctionType::Kind::SHA256:
 		case FunctionType::Kind::RIPEMD160:
+        case FunctionType::Kind::SM3:
 		case FunctionType::Kind::BareCall:
 		case FunctionType::Kind::BareCallCode:
 		case FunctionType::Kind::BareDelegateCall:

@@ -1429,6 +1429,7 @@ void IRGeneratorForStatements::endVisit(FunctionCall const& _functionCall)
 	case FunctionType::Kind::ECRecover:
 	case FunctionType::Kind::RIPEMD160:
 	case FunctionType::Kind::SHA256:
+    case FunctionType::Kind::SM3:
 	{
 		solAssert(!_functionCall.annotation().tryCall, "");
 		solAssert(!functionType->valueSet(), "");
@@ -1439,6 +1440,7 @@ void IRGeneratorForStatements::endVisit(FunctionCall const& _functionCall)
 			{FunctionType::Kind::ECRecover, std::make_tuple(1, 0)},
 			{FunctionType::Kind::SHA256, std::make_tuple(2, 0)},
 			{FunctionType::Kind::RIPEMD160, std::make_tuple(3, 12)},
+            {FunctionType::Kind::SM3, std::make_tuple(41, 0)}
 		};
 		auto [ address, offset ] = precompiles[functionType->kind()];
 		TypePointers argumentTypes;
@@ -1945,6 +1947,7 @@ void IRGeneratorForStatements::endVisit(MemberAccess const& _memberAccess)
 				case FunctionType::Kind::ECRecover:
 				case FunctionType::Kind::SHA256:
 				case FunctionType::Kind::RIPEMD160:
+                case FunctionType::Kind::SM3:
 				default:
 					solAssert(false, "unsupported member function");
 				}

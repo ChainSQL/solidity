@@ -612,6 +612,7 @@ void SMTEncoder::endVisit(FunctionCall const& _funCall)
 	case FunctionType::Kind::ECRecover:
 	case FunctionType::Kind::SHA256:
 	case FunctionType::Kind::RIPEMD160:
+    case FunctionType::Kind::SM3:
 		visitCryptoFunction(_funCall);
 		break;
 	case FunctionType::Kind::BlockHash:
@@ -773,6 +774,8 @@ void SMTEncoder::visitCryptoFunction(FunctionCall const& _funCall)
 		result = smtutil::Expression::select(state().cryptoFunction("keccak256"), arg0);
 	else if (kind == FunctionType::Kind::SHA256)
 		result = smtutil::Expression::select(state().cryptoFunction("sha256"), arg0);
+    else if (kind == FunctionType::Kind::SM3)
+        result = smtutil::Expression::select(state().cryptoFunction("sm3"), arg0);
 	else if (kind == FunctionType::Kind::RIPEMD160)
 		result = smtutil::Expression::select(state().cryptoFunction("ripemd160"), arg0);
 	else if (kind == FunctionType::Kind::ECRecover)

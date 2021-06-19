@@ -193,15 +193,15 @@ enum class Instruction: uint8_t
     EXGETLENBYKEY,
     EXGETLENBYINDEX = 0xd0,
 
+	REVERTDIY,
+
     EXACCOUNTSET,
-    EXTRANSFERRATESET,
-    EXTRANSFERRANGESET,
+    EXTRANSFERFEESET,
     EXTRUSTSET,
     EXTRUSTLIMIT,
     EXGATEWAYBALANCE,
     EXPAY,
 
-	REVERTDIY,
     /** NOTE: maximum value is 0xef */
 
 	CREATE = 0xf0,		///< create a new account with associated code
