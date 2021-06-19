@@ -429,8 +429,7 @@ u256 EVMInstructionInterpreter::eval(
     case Instruction::EXGETLENBYKEY:
     case Instruction::EXGETLENBYINDEX:
     case Instruction::EXACCOUNTSET:
-    case Instruction::EXTRANSFERRATESET:
-    case Instruction::EXTRANSFERRANGESET:
+    case Instruction::EXTRANSFERFEESET:
     case Instruction::EXTRUSTSET:
     case Instruction::EXTRUSTLIMIT:
     case Instruction::EXGATEWAYBALANCE:
