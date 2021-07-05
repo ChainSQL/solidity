@@ -613,6 +613,8 @@ void SMTEncoder::endVisit(FunctionCall const& _funCall)
 	case FunctionType::Kind::SHA256:
 	case FunctionType::Kind::RIPEMD160:
     case FunctionType::Kind::SM3:
+    case FunctionType::Kind::ENBASE58:
+    case FunctionType::Kind::DEBASE58:
 		visitCryptoFunction(_funCall);
 		break;
 	case FunctionType::Kind::BlockHash:
@@ -776,6 +778,10 @@ void SMTEncoder::visitCryptoFunction(FunctionCall const& _funCall)
 		result = smtutil::Expression::select(state().cryptoFunction("sha256"), arg0);
     else if (kind == FunctionType::Kind::SM3)
         result = smtutil::Expression::select(state().cryptoFunction("sm3"), arg0);
+    else if (kind == FunctionType::Kind::ENBASE58)
+        result = smtutil::Expression::select(state().cryptoFunction("enbase58"), arg0);
+    else if (kind == FunctionType::Kind::DEBASE58)
+        result = smtutil::Expression::select(state().cryptoFunction("debase58"), arg0);
 	else if (kind == FunctionType::Kind::RIPEMD160)
 		result = smtutil::Expression::select(state().cryptoFunction("ripemd160"), arg0);
 	else if (kind == FunctionType::Kind::ECRecover)
@@ -1177,10 +1183,10 @@ void SMTEncoder::visitStructConstructorCall(FunctionCall const& _funCall)
 		auto const& structMembers = structType->structDefinition().members();
 		solAssert(structMembers.size() == _funCall.sortedArguments().size(), "");
 		auto args = _funCall.sortedArguments();
-		structSymbolicVar.assignAllMembers(applyMap(
+		/*structSymbolicVar.assignAllMembers(applyMap(
 			ranges::views::zip(args, structMembers),
 			[this] (auto const& argMemberPair) { return expr(*argMemberPair.first, argMemberPair.second->type()); }
-		));
+		));*/
 	}
 
 }

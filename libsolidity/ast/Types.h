@@ -1196,6 +1196,8 @@ public:
 
         /* Begin chainsql preCompileContract */
         SM3,    ///< CALL to special contract for sm3
+        ENBASE58,
+        DEBASE58,
         /* End chainsql preCompileContract */
 
 		RevertDIY
@@ -1371,6 +1373,7 @@ public:
 		case FunctionType::Kind::SHA256:
 		case FunctionType::Kind::RIPEMD160:
         case FunctionType::Kind::SM3:
+        case FunctionType::Kind::ENBASE58:
 		case FunctionType::Kind::BareCall:
 		case FunctionType::Kind::BareCallCode:
 		case FunctionType::Kind::BareDelegateCall:

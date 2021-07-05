@@ -64,6 +64,8 @@ int magicVariableToID(std::string const& _name)
     else if (_name == "revertdiy") return -29;
     else if (_name == "db") return -30;
     else if (_name == "sm3") return -31;
+    else if (_name == "enbase58") return -32;
+    else if (_name == "debase58") return -33;
 	else
 		solAssert(false, "Unknown magic variable: \"" + _name + "\".");
 }
@@ -109,6 +111,9 @@ inline vector<shared_ptr<MagicVariableDeclaration const>> constructMagicVariable
 		)),
         magicVarDecl("db", TypeProvider::magic(MagicType::Kind::Database)),
         magicVarDecl("sm3", TypeProvider::function(strings{"bytes memory"}, strings{"bytes32"}, FunctionType::Kind::SM3, false, StateMutability::Pure)),
+        magicVarDecl("enbase58", TypeProvider::function(strings{"bytes memory"}, strings{"string memory"}, FunctionType::Kind::ENBASE58, false, StateMutability::Pure)),
+        // magicVarDecl("enbase58", TypeProvider::function(strings{"bytes memory"}, strings{"string memory"}, FunctionType::Kind::ENBASE58, false, StateMutability::Pure)),
+        magicVarDecl("debase58", TypeProvider::function(strings{"string memory"}, strings{"bytes20"}, FunctionType::Kind::DEBASE58, false, StateMutability::Pure)),
 	};
 }
 

@@ -224,6 +224,14 @@ private:
 				smt::smtSort(*TypeProvider::bytesStorage()),
 				smtSort(*TypeProvider::fixedBytes(32))
 			)},
+            {"enbase58", std::make_shared<smtutil::ArraySort>(
+				smt::smtSort(*TypeProvider::bytesStorage()),
+				smtSort(*TypeProvider::stringStorage())
+			)},
+            {"debase58", std::make_shared<smtutil::ArraySort>(
+				smt::smtSort(*TypeProvider::stringStorage()),
+				smtSort(*TypeProvider::fixedBytes(20))
+			)},
 			{"ripemd160", std::make_shared<smtutil::ArraySort>(
 				smt::smtSort(*TypeProvider::bytesStorage()),
 				smtSort(*TypeProvider::fixedBytes(20))

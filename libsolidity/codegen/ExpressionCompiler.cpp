@@ -1013,13 +1013,17 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
 		case FunctionType::Kind::SHA256:
 		case FunctionType::Kind::RIPEMD160:
         case FunctionType::Kind::SM3:
+        case FunctionType::Kind::ENBASE58:
+        case FunctionType::Kind::DEBASE58:
 		{
 			_functionCall.expression().accept(*this);
 			static map<FunctionType::Kind, u256> const contractAddresses{
 				{FunctionType::Kind::ECRecover, 1},
 				{FunctionType::Kind::SHA256, 2},
 				{FunctionType::Kind::RIPEMD160, 3},
-				{FunctionType::Kind::SM3, 41},
+				{FunctionType::Kind::SM3, 0x4000},
+				{FunctionType::Kind::ENBASE58, 0x4001},
+				{FunctionType::Kind::DEBASE58, 0x4002},
 			};
 			m_context << contractAddresses.at(function.kind());
 			for (unsigned i = function.sizeOnStack(); i > 0; --i)
@@ -1028,6 +1032,11 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
 			appendExternalFunctionCall(function, arguments, false);
 			break;
 		}
+        /*case FunctionType::Kind::ENBASE58:
+        {
+            _functionCall.expression().accept(*this);
+            utils().fetchFreeMemoryPointer();
+        }*/
 		case FunctionType::Kind::ArrayPush:
 		{
 			solAssert(function.bound(), "");
@@ -1908,6 +1917,8 @@ bool ExpressionCompiler::visit(MemberAccess const& _memberAccess)
 					case FunctionType::Kind::SHA256:
 					case FunctionType::Kind::RIPEMD160:
                     case FunctionType::Kind::SM3:
+                    case FunctionType::Kind::ENBASE58:
+                    case FunctionType::Kind::DEBASE58:
 					default:
 						solAssert(false, "unsupported member function");
 					}
@@ -2892,7 +2903,7 @@ void ExpressionCompiler::appendExternalFunctionCall(
 
 	solAssert(funKind != FunctionType::Kind::BareCallCode, "Callcode has been removed.");
 
-	bool returnSuccessConditionAndReturndata = funKind == FunctionType::Kind::BareCall || funKind == FunctionType::Kind::BareDelegateCall || funKind == FunctionType::Kind::BareStaticCall;
+	bool returnSuccessConditionAndReturndata = funKind == FunctionType::Kind::ENBASE58 || funKind == FunctionType::Kind::BareCall || funKind == FunctionType::Kind::BareDelegateCall || funKind == FunctionType::Kind::BareStaticCall;
 	bool isDelegateCall = funKind == FunctionType::Kind::BareDelegateCall || funKind == FunctionType::Kind::DelegateCall;
 	bool useStaticCall = funKind == FunctionType::Kind::BareStaticCall || (_functionType.stateMutability() <= StateMutability::View && m_context.evmVersion().hasStaticCall());
 

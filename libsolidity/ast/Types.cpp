@@ -2896,6 +2896,8 @@ string FunctionType::richIdentifier() const
 	case Kind::ECRecover: id += "ecrecover"; break;
 	case Kind::SHA256: id += "sha256"; break;
     case Kind::SM3: id += "sm3"; break;
+    case Kind::ENBASE58: id += "enbase58"; break;
+    case Kind::DEBASE58: id += "debase58"; break;
 	case Kind::RIPEMD160: id += "ripemd160"; break;
 	case Kind::GasLeft: id += "gasleft"; break;
 	case Kind::Event: id += "event"; break;
@@ -3433,6 +3435,8 @@ bool FunctionType::isBareCall() const
 	case Kind::SHA256:
 	case Kind::RIPEMD160:
     case Kind::SM3:
+    case Kind::ENBASE58:
+    case Kind::DEBASE58:
 		return true;
 	default:
 		return false;
@@ -3497,6 +3501,8 @@ bool FunctionType::isPure() const
 		m_kind == Kind::SHA256 ||
 		m_kind == Kind::RIPEMD160 ||
         m_kind == Kind::SM3 ||
+        m_kind == Kind::ENBASE58 ||
+        m_kind == Kind::DEBASE58 ||
 		m_kind == Kind::AddMod ||
 		m_kind == Kind::MulMod ||
 		m_kind == Kind::ObjectCreation ||
@@ -3631,6 +3637,8 @@ bool FunctionType::padArguments() const
 	case Kind::RIPEMD160:
     case Kind::SM3:
 	case Kind::KECCAK256:
+    case Kind::ENBASE58:
+    case Kind::DEBASE58:
 	case Kind::ABIEncodePacked:
     case Kind::CreateSQL:
     case Kind::DropSQL:

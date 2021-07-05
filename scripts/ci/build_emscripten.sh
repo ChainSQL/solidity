@@ -52,7 +52,8 @@ else
 	# Use last commit date rather than build date to avoid ending up with builds for
 	# different platforms having different version strings (and therefore producing different bytecode)
 	# if the CI is triggered just before midnight.
-	TZ=UTC git show --quiet --date="format-local:%Y.%-m.%-d" --format="ci.%cd" >prerelease.txt
+	# TZ=UTC git show --quiet --date="format-local:%Y.%-m.%-d" --format="ci.%cd" >prerelease.txt
+    echo -n >prerelease.txt
 fi
 if [ -n "$CIRCLE_SHA1" ]
 then
