@@ -1032,11 +1032,6 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
 			appendExternalFunctionCall(function, arguments, false);
 			break;
 		}
-        /*case FunctionType::Kind::ENBASE58:
-        {
-            _functionCall.expression().accept(*this);
-            utils().fetchFreeMemoryPointer();
-        }*/
 		case FunctionType::Kind::ArrayPush:
 		{
 			solAssert(function.bound(), "");
@@ -1725,7 +1720,7 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
             solAssert(argType1, "");
             arguments.front()->accept(*this);
 
-            /* arguments (string memory, string memory) */
+            /* arguments (string memory, string memory, string memory) */
             std::vector<ASTPointer<Expression const>> memArguments(
                 arguments.begin() + 1, arguments.end() - 1);
             TypePointers params(parameterTypes.begin() + 1, parameterTypes.end() - 1);

@@ -112,7 +112,6 @@ inline vector<shared_ptr<MagicVariableDeclaration const>> constructMagicVariable
         magicVarDecl("db", TypeProvider::magic(MagicType::Kind::Database)),
         magicVarDecl("sm3", TypeProvider::function(strings{"bytes memory"}, strings{"bytes32"}, FunctionType::Kind::SM3, false, StateMutability::Pure)),
         magicVarDecl("enbase58", TypeProvider::function(strings{"bytes memory"}, strings{"string memory"}, FunctionType::Kind::ENBASE58, false, StateMutability::Pure)),
-        // magicVarDecl("enbase58", TypeProvider::function(strings{"bytes memory"}, strings{"string memory"}, FunctionType::Kind::ENBASE58, false, StateMutability::Pure)),
         magicVarDecl("debase58", TypeProvider::function(strings{"string memory"}, strings{"bytes20"}, FunctionType::Kind::DEBASE58, false, StateMutability::Pure)),
 	};
 }
