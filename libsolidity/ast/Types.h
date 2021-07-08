@@ -942,8 +942,7 @@ public:
 
         /* Begin Token */
         AccountSet,
-        SetTransferRate,
-        SetTransferRange,
+        SetTransferFee,
         TrustSet,
         TrustLimit,
         GatewayBalance,

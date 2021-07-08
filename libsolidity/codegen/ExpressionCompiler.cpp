@@ -1333,29 +1333,9 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
 
             break;
         }
-        case FunctionType::Kind::SetTransferRate: {
-            solAssert(arguments.size() == 1, "argument's size doesn't math parameter");
-
-            /* address */
-            _functionCall.expression().accept(*this);
-
-            /* argument (string memory) */
-            prepareSQLCallMemParams(arguments, parameterTypes);
-
-            m_context << Instruction::DUP2 << Instruction::DUP2
-                << Instruction::DUP5 << Instruction::EXTRANSFERRATESET
-                << swapInstruction(3);
-
-            utils().popStackSlots(3);
-
-            m_context << Instruction::ISZERO;
-            m_context.appendConditionalRevertDIY(true);
-
-            break;
-        }
-        case FunctionType::Kind::SetTransferRange:
+        case FunctionType::Kind::SetTransferFee:
         {
-            solAssert(arguments.size() == 2, "argument's size doesn't math parameter");
+            solAssert(arguments.size() == 3, "argument's size doesn't math parameter");
 
             /* address */
             _functionCall.expression().accept(*this);
@@ -1365,10 +1345,11 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
 
             m_context << Instruction::DUP2 << Instruction::DUP2
                 << Instruction::DUP6 << Instruction::DUP6
-                << Instruction::DUP9 << Instruction::EXTRANSFERRANGESET
-                << swapInstruction(5);
+                << Instruction::DUP10 << Instruction::DUP10
+                << Instruction::DUP13 << Instruction::EXTRANSFERFEESET
+                << swapInstruction(7);
 
-            utils().popStackSlots(5);
+            utils().popStackSlots(7);
 
             m_context << Instruction::ISZERO;
             m_context.appendConditionalRevertDIY(true);
@@ -1409,18 +1390,33 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
         case FunctionType::Kind::TrustLimit:
         case FunctionType::Kind::GatewayBalance:
         {
-            solAssert(arguments.size() == 2, "argument's size doesn't math parameter");
+            solAssert(arguments.size() == 3, "argument's size doesn't math parameter");
 
             /* address */
             _functionCall.expression().accept(*this);
 
+            auto arg = arguments.begin();
+            auto param = parameterTypes.begin();
+
             /* argument (string memory) */
-            copyParamToMemory(*arguments.begin(), *parameterTypes.begin());
+            copyParamToMemory(*arg, *param);
+
+            ++arg;
+            ++param;
+
+            /* argument (uint64) */
+            TypePointer const &argType1 = (*arg)->annotation().type;
+            solAssert(argType1, "");
+            (*arg)->accept(*this);
+            utils().convertType(*argType1, **param, true);
+
+            ++arg;
+            ++param;
 
             /** argument (address) */
-            auto const &argType = arguments.back()->annotation().type;
-            solAssert(argType, "");
-            arguments.back()->accept(*this);
+            auto const &argType2 = (*arg)->annotation().type;
+            solAssert(argType2, "");
+            (*arg)->accept(*this);
 
             Instruction cmd = Instruction::EXTRUSTLIMIT;
             switch (function.kind())
@@ -1436,22 +1432,23 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
             }
 
             m_context << Instruction::DUP1
-                << Instruction::DUP4 << Instruction::DUP4
-                << Instruction::DUP7 << cmd
-                << swapInstruction(4);
+                << Instruction::DUP3
+                << Instruction::DUP6 << Instruction::DUP6
+                << Instruction::DUP9 << cmd
+                << swapInstruction(5);
 
-            utils().popStackSlots(4);
+            utils().popStackSlots(5);
 
             break;
         }
         case FunctionType::Kind::Pay:
         {
-            solAssert(arguments.size() == 4, "argument's size doesn't math parameter");
+            solAssert(arguments.size() == 5, "argument's size doesn't math parameter");
 
-            /* address */
+            /* address sender */
             _functionCall.expression().accept(*this);
 
-            /** argument (address) */
+            /** argument (address receiver) */
             auto const &argType1 = arguments.front()->annotation().type;
             solAssert(argType1, "");
             arguments.front()->accept(*this);
@@ -1462,20 +1459,24 @@ bool ExpressionCompiler::visit(FunctionCall const& _functionCall)
             TypePointers params(parameterTypes.begin() + 1, parameterTypes.end() - 1);
             prepareSQLCallMemParams(memArguments, params);
 
-            /** argument (address) */
+            /** argument (address gateway) */
             auto const &argType2 = arguments.back()->annotation().type;
             solAssert(argType2, "");
             arguments.back()->accept(*this);
 
-            m_context << Instruction::DUP1
+            /*m_context << Instruction::DUP1
                 << Instruction::DUP4 << Instruction::DUP4
                 << Instruction::DUP8 << Instruction::DUP8
                 << Instruction::DUP11
                 << Instruction::DUP13
                 << Instruction::EXPAY
-                << swapInstruction(7);
+                << swapInstruction(7);*/
 
-            utils().popStackSlots(7);
+            utils().copyToStackTop(9, 9);
+
+            m_context << Instruction::EXPAY << swapInstruction(9);
+
+            utils().popStackSlots(9);
 
             m_context << Instruction::ISZERO;
             m_context.appendConditionalRevertDIY(true);
@@ -1568,8 +1569,7 @@ bool ExpressionCompiler::visit(MemberAccess const& _memberAccess)
                 case FunctionType::Kind::DeleteSQL:
                 case FunctionType::Kind::UpdateSQL:
                 case FunctionType::Kind::AccountSet:
-                case FunctionType::Kind::SetTransferRate:
-                case FunctionType::Kind::SetTransferRange:
+                case FunctionType::Kind::SetTransferFee:
                 case FunctionType::Kind::TrustSet:
                 case FunctionType::Kind::TrustLimit:
                 case FunctionType::Kind::GatewayBalance:
@@ -1677,7 +1677,7 @@ bool ExpressionCompiler::visit(MemberAccess const& _memberAccess)
 		else if ((set<string>{"send", "transfer", "call", "callcode", 
                     "delegatecall", "create", "drop", "rename", "insert", 
                     "deletex", "update", "grant", "get", 
-                    "accountSet", "setTransferRate", "setTransferRange",
+                    "accountSet", "setTransferFee", 
                     "trustSet", "trustLimit", "gatewayBalance", "pay"}).count(member)) {
 			utils().convertType(
 				*_memberAccess.expression().annotation().type,
