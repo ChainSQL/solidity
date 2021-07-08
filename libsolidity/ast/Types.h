@@ -949,6 +949,10 @@ public:
         Pay,
         /* End Token */
 
+        /* Begin chainsql preCompileContract */
+        SM3,
+        /* End chainsql preCompileContract */
+
 		RevertDIY,
         
 	};

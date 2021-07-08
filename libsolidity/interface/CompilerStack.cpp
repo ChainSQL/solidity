@@ -892,17 +892,17 @@ bytes CompilerStack::createCBORMetadata(string _metadata, bool _experimentalMode
 		// CBOR-encoding of the hash
 		bytes{0x58, 0x20} + dev::swarmHash(_metadata).asBytes();
 	bytes cborEncodedMetadata;
-	if (_experimentalMode)
-		cborEncodedMetadata =
-			// CBOR-encoding of {"bzzr0": dev::swarmHash(metadata), "experimental": true}
-			bytes{0xa2} +
-			cborEncodedHash +
-			bytes{0x6c, 'e', 'x', 'p', 'e', 'r', 'i', 'm', 'e', 'n', 't', 'a', 'l', 0xf5};
-	else
-		cborEncodedMetadata =
-			// CBOR-encoding of {"bzzr0": dev::swarmHash(metadata)}
-			bytes{0xa1} +
-			cborEncodedHash;
+	//if (_experimentalMode)
+	//	cborEncodedMetadata =
+	//		// CBOR-encoding of {"bzzr0": dev::swarmHash(metadata), "experimental": true}
+	//		bytes{0xa2} +
+	//		cborEncodedHash +
+	//		bytes{0x6c, 'e', 'x', 'p', 'e', 'r', 'i', 'm', 'e', 'n', 't', 'a', 'l', 0xf5};
+	//else
+	//	cborEncodedMetadata =
+	//		// CBOR-encoding of {"bzzr0": dev::swarmHash(metadata)}
+	//		bytes{0xa1} +
+	//		cborEncodedHash;
 	solAssert(cborEncodedMetadata.size() <= 0xffff, "Metadata too large");
 	// 16-bit big endian length
 	cborEncodedMetadata += toCompactBigEndian(cborEncodedMetadata.size(), 2);
